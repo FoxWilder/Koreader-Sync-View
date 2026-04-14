@@ -113,11 +113,111 @@ function extractEpubCover(epubPath: string): string | null {
   return `data:${mime};base64,${imgBuf.toString("base64")}`;
 }
 
+// ---------------------------------------------------------------------------
+// EPUB metadata extraction
+// ---------------------------------------------------------------------------
+
+export interface EpubMeta {
+  title: string;
+  authors: string[];
+  publisher: string;
+  language: string;
+  date: string;
+  description: string;
+  series: string;
+  series_index: string;
+  subjects: string[];
+  identifiers: string[];
+  page_count: number;
+}
+
+/** Extract Dublin Core + OPF metadata from an EPUB's OPF file. */
+function extractEpubMeta(epubPath: string): EpubMeta | null {
+  let buf: Buffer;
+  try {
+    buf = fs.readFileSync(epubPath);
+  } catch {
+    return null;
+  }
+
+  const containerXml = readZipEntry(buf, "META-INF/container.xml");
+  if (!containerXml) return null;
+
+  const opfMatch = containerXml.toString("utf-8").match(/full-path=["']([^"']+\.opf)["']/i);
+  if (!opfMatch) return null;
+
+  const opfBuf = readZipEntry(buf, opfMatch[1]);
+  if (!opfBuf) return null;
+  const opf = opfBuf.toString("utf-8");
+
+  function first(re: RegExp): string {
+    return (opf.match(re)?.[1] ?? "").replace(/<[^>]+>/g, "").trim();
+  }
+  function all(re: RegExp): string[] {
+    const results: string[] = [];
+    let m: RegExpExecArray | null;
+    const g = new RegExp(re.source, "gi");
+    while ((m = g.exec(opf)) !== null) {
+      const v = (m[1] ?? "").replace(/<[^>]+>/g, "").trim();
+      if (v) results.push(v);
+    }
+    return results;
+  }
+
+  const title       = first(/<dc:title[^>]*>([^<]+)/i);
+  const authors     = all(/<dc:creator[^>]*>([^<]+)/i);
+  const publisher   = first(/<dc:publisher[^>]*>([^<]+)/i);
+  const language    = first(/<dc:language[^>]*>([^<]+)/i);
+  const date        = first(/<dc:date[^>]*>([^<]+)/i);
+  const subjects    = all(/<dc:subject[^>]*>([^<]+)/i);
+  const identifiers = all(/<dc:identifier[^>]*>([^<]+)/i);
+
+  // Description — may contain HTML, strip tags
+  const rawDesc = first(/<dc:description[^>]*>([\s\S]*?)<\/dc:description>/i);
+  const description = rawDesc.replace(/<[^>]+>/g, " ").replace(/\s+/g, " ").trim();
+
+  // Series from Calibre OPF meta tags
+  const series      = first(/<meta[^>]+name=["']calibre:series["'][^>]+content=["']([^"']+)["']/i)
+    || first(/<meta[^>]+content=["']([^"']+)["'][^>]+name=["']calibre:series["']/i);
+  const series_index = first(/<meta[^>]+name=["']calibre:series_index["'][^>]+content=["']([^"']+)["']/i)
+    || first(/<meta[^>]+content=["']([^"']+)["'][^>]+name=["']calibre:series_index["']/i);
+
+  // Spine item count as a proxy for chapter/section count
+  const spineItems = (opf.match(/<itemref\b/gi) ?? []).length;
+
+  return {
+    title,
+    authors,
+    publisher,
+    language,
+    date,
+    description,
+    series,
+    series_index,
+    subjects,
+    identifiers,
+    page_count: spineItems,
+  };
+}
+
+/** Read cached metadata for a book, or null if not cached. */
+export function readEpubMeta(md5: string): EpubMeta | null {
+  const p = path.join(META_DIR, md5 + ".json");
+  try {
+    if (fs.existsSync(p)) {
+      return JSON.parse(fs.readFileSync(p, "utf-8")) as EpubMeta;
+    }
+  } catch {
+    // ignore
+  }
+  return null;
+}
 const DATA_DIR = process.env.KOREADER_DATA_DIR || path.join(process.cwd(), "koreader-data");
 const SETTINGS_FILE = path.join(DATA_DIR, "settings.json");
 const CACHE_FILE = process.env.KOREADER_CACHE || path.join(DATA_DIR, "book-md5-cache.json");
 const USERS_DIR = path.join(DATA_DIR, "users");
 const COVERS_DIR = path.join(DATA_DIR, "covers");
+const META_DIR = path.join(DATA_DIR, "meta");
 
 const SUPPORTED_EXTENSIONS = ["epub", "pdf", "mobi", "azw", "azw3", "cbz", "cbr", "djvu", "fb2", "txt"];
 
@@ -268,40 +368,51 @@ function* walkDir(dir: string): Generator<string> {
 // Cover extraction
 // ---------------------------------------------------------------------------
 
-/** Write a cover data-URL to covers/{md5}.txt, skipping if already present. */
-function writeCoverFile(md5: string, dataUrl: string): void {
-  fs.mkdirSync(COVERS_DIR, { recursive: true });
-  const dest = path.join(COVERS_DIR, md5 + ".txt");
-  if (fs.existsSync(dest)) return; // already cached
-  fs.writeFileSync(dest, dataUrl, "utf-8");
-}
-
 /**
- * Extract covers for a list of [md5, filePath] epub entries.
+ * Extract covers and metadata for a list of [md5, filePath] epub entries.
  * Runs one file per event-loop tick to avoid blocking the server.
  */
-function extractCoversAsync(entries: [string, string][]): void {
+function extractEpubAssetsAsync(entries: [string, string][]): void {
   let i = 0;
-  let extracted = 0;
+  let coversExtracted = 0;
+  let metaExtracted = 0;
+
+  fs.mkdirSync(COVERS_DIR, { recursive: true });
+  fs.mkdirSync(META_DIR, { recursive: true });
 
   function next(): void {
     if (i >= entries.length) {
-      logger.info({ extracted, total: entries.length }, "Cover extraction complete");
+      logger.info({ coversExtracted, metaExtracted, total: entries.length }, "EPUB asset extraction complete");
       return;
     }
     const [md5, filePath] = entries[i++];
+
     const coverPath = path.join(COVERS_DIR, md5 + ".txt");
-    if (!fs.existsSync(coverPath)) {
+    const metaPath  = path.join(META_DIR,   md5 + ".json");
+    const needCover = !fs.existsSync(coverPath);
+    const needMeta  = !fs.existsSync(metaPath);
+
+    if (needCover || needMeta) {
       try {
-        const dataUrl = extractEpubCover(filePath);
-        if (dataUrl) {
-          writeCoverFile(md5, dataUrl);
-          extracted++;
+        if (needCover) {
+          const dataUrl = extractEpubCover(filePath);
+          if (dataUrl) {
+            fs.writeFileSync(coverPath, dataUrl, "utf-8");
+            coversExtracted++;
+          }
+        }
+        if (needMeta) {
+          const meta = extractEpubMeta(filePath);
+          if (meta) {
+            fs.writeFileSync(metaPath, JSON.stringify(meta, null, 2), "utf-8");
+            metaExtracted++;
+          }
         }
       } catch (e) {
-        logger.warn({ err: e, file: path.basename(filePath) }, "Cover extraction failed");
+        logger.warn({ err: e, file: path.basename(filePath) }, "EPUB asset extraction failed");
       }
     }
+
     setImmediate(next);
   }
 
@@ -390,7 +501,7 @@ export function triggerScan(): ScanStatus {
     const epubEntries = Object.entries(merged).filter(
       ([, fp]) => path.extname(fp).toLowerCase() === ".epub"
     );
-    setImmediate(() => extractCoversAsync(epubEntries));
+    setImmediate(() => extractEpubAssetsAsync(epubEntries));
   } catch (e) {
     scanStatus.running = false;
     scanStatus.error = String(e);

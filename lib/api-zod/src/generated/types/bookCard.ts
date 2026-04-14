@@ -34,4 +34,5 @@ export interface BookCard {
   epub_subjects: string[];
   epub_identifiers: string[];
   epub_description: string;
+  epub_page_count: number;
 }

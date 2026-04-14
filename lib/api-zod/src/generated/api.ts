@@ -57,6 +57,7 @@ export const GetStatsResponse = zod.object({
       epub_subjects: zod.array(zod.string()),
       epub_identifiers: zod.array(zod.string()),
       epub_description: zod.string(),
+      epub_page_count: zod.number(),
     }),
   ),
   users_breakdown: zod.array(
@@ -117,6 +118,7 @@ export const SearchLibraryResponseItem = zod.object({
   epub_subjects: zod.array(zod.string()),
   epub_identifiers: zod.array(zod.string()),
   epub_description: zod.string(),
+  epub_page_count: zod.number(),
 });
 export const SearchLibraryResponse = zod.array(SearchLibraryResponseItem);
 
