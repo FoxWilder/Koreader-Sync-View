@@ -40,7 +40,7 @@ param(
     [int]    $Port        = 7300,
     [string] $DataDir     = "",
     [string] $ServiceName = "KOReaderSync",
-    [string] $GitHubRepo  = "your-username/koreader-sync",
+    [string] $GitHubRepo  = "FoxWilder/Koreader-Sync-View",
     [switch] $Uninstall
 )
 
