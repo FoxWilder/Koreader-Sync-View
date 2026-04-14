@@ -275,6 +275,20 @@ export const TriggerScanResponse = zod.object({
 });
 
 /**
+ * Wipe the existing MD5 cache and run a full scan from scratch
+ * @summary Rebuild MD5 cache
+ */
+export const RebuildCacheResponse = zod.object({
+  running: zod.boolean(),
+  files_found: zod.number(),
+  files_processed: zod.number(),
+  current_file: zod.string(),
+  started_at: zod.string(),
+  finished_at: zod.string(),
+  error: zod.string(),
+});
+
+/**
  * Returns current scan status and progress
  * @summary Get scan status
  */
