@@ -118,18 +118,53 @@ paths:
               schema:
                 type: string
 
-  /koreader/syncs/{username}/{document}:
+  /koreader/users/create:
+    post:
+      operationId: registerUser
+      tags: [sync]
+      summary: Register a new user
+      description: >
+        KOReader user registration. password is the MD5 hash of the user's
+        password, hashed client-side by KOReader before sending.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/RegisterUserBody"
+      responses:
+        "201":
+          description: User registered
+        "402":
+          description: Username already registered
+
+  /koreader/users/auth:
+    get:
+      operationId: getAuth
+      tags: [sync]
+      summary: Authenticate user
+      description: >
+        KOReader user authentication. Credentials passed via
+        x-auth-user and x-auth-key request headers.
+      responses:
+        "200":
+          description: Authenticated
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AuthResponse"
+        "401":
+          description: Unauthorized
+
+  /koreader/syncs/progress/{document}:
     get:
       operationId: getSyncProgress
       tags: [sync]
       summary: Get reading progress for a document
-      description: KOReader progress sync GET endpoint
+      description: >
+        Returns stored reading progress for a document MD5.
+        Credentials passed via x-auth-user and x-auth-key headers.
       parameters:
-        - name: username
-          in: path
-          required: true
-          schema:
-            type: string
         - name: document
           in: path
           required: true
@@ -144,22 +179,15 @@ paths:
                 $ref: "#/components/schemas/SyncProgress"
         "404":
           description: Not found
+
+  /koreader/syncs/progress:
     put:
       operationId: updateSyncProgress
       tags: [sync]
       summary: Update reading progress for a document
-      description: KOReader progress sync PUT endpoint
-      parameters:
-        - name: username
-          in: path
-          required: true
-          schema:
-            type: string
-        - name: document
-          in: path
-          required: true
-          schema:
-            type: string
+      description: >
+        Saves reading progress for a document.
+        Credentials passed via x-auth-user and x-auth-key headers.
       requestBody:
         required: true
         content:
@@ -173,28 +201,6 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/SyncProgress"
-
-  /koreader/users/{username}/auth:
-    get:
-      operationId: getAuth
-      tags: [sync]
-      summary: Authenticate user
-      description: KOReader user authentication check
-      parameters:
-        - name: username
-          in: path
-          required: true
-          schema:
-            type: string
-      responses:
-        "200":
-          description: Authenticated
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/AuthResponse"
-        "401":
-          description: Unauthorized
 
   /koreader/settings:
     get:
@@ -464,9 +470,24 @@ components:
         - device_id
         - timestamp
 
+    RegisterUserBody:
+      type: object
+      properties:
+        username:
+          type: string
+        password:
+          type: string
+          description: MD5-hashed password (hashed client-side by KOReader)
+      required:
+        - username
+        - password
+
     SyncProgressUpdate:
       type: object
       properties:
+        document:
+          type: string
+          description: MD5 hash identifying the document
         progress:
           type: string
         percentage:
@@ -476,6 +497,7 @@ components:
         device_id:
           type: string
       required:
+        - document
         - progress
         - percentage
         - device

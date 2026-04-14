@@ -20,6 +20,7 @@ import type {
   AuthResponse,
   BookCard,
   HealthStatus,
+  RegisterUserBody,
   ScanStatus,
   SearchLibraryParams,
   Settings,
@@ -364,36 +365,187 @@ export function useGetCover<
 }
 
 /**
- * KOReader progress sync GET endpoint
- * @summary Get reading progress for a document
+ * KOReader user registration. password is the MD5 hash of the user's password, hashed client-side by KOReader before sending.
+
+ * @summary Register a new user
  */
-export const getGetSyncProgressUrl = (username: string, document: string) => {
-  return `/api/koreader/syncs/${username}/${document}`;
+export const getRegisterUserUrl = () => {
+  return `/api/koreader/users/create`;
 };
 
-export const getSyncProgress = async (
-  username: string,
-  document: string,
+export const registerUser = async (
+  registerUserBody: RegisterUserBody,
   options?: RequestInit,
-): Promise<SyncProgress> => {
-  return customFetch<SyncProgress>(getGetSyncProgressUrl(username, document), {
+): Promise<void> => {
+  return customFetch<void>(getRegisterUserUrl(), {
+    ...options,
+    method: "POST",
+    headers: { "Content-Type": "application/json", ...options?.headers },
+    body: JSON.stringify(registerUserBody),
+  });
+};
+
+export const getRegisterUserMutationOptions = <
+  TError = ErrorType<void>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof registerUser>>,
+    TError,
+    { data: BodyType<RegisterUserBody> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof registerUser>>,
+  TError,
+  { data: BodyType<RegisterUserBody> },
+  TContext
+> => {
+  const mutationKey = ["registerUser"];
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation &&
+      "mutationKey" in options.mutation &&
+      options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof registerUser>>,
+    { data: BodyType<RegisterUserBody> }
+  > = (props) => {
+    const { data } = props ?? {};
+
+    return registerUser(data, requestOptions);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type RegisterUserMutationResult = NonNullable<
+  Awaited<ReturnType<typeof registerUser>>
+>;
+export type RegisterUserMutationBody = BodyType<RegisterUserBody>;
+export type RegisterUserMutationError = ErrorType<void>;
+
+/**
+ * @summary Register a new user
+ */
+export const useRegisterUser = <
+  TError = ErrorType<void>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof registerUser>>,
+    TError,
+    { data: BodyType<RegisterUserBody> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationResult<
+  Awaited<ReturnType<typeof registerUser>>,
+  TError,
+  { data: BodyType<RegisterUserBody> },
+  TContext
+> => {
+  return useMutation(getRegisterUserMutationOptions(options));
+};
+
+/**
+ * KOReader user authentication. Credentials passed via x-auth-user and x-auth-key request headers.
+
+ * @summary Authenticate user
+ */
+export const getGetAuthUrl = () => {
+  return `/api/koreader/users/auth`;
+};
+
+export const getAuth = async (options?: RequestInit): Promise<AuthResponse> => {
+  return customFetch<AuthResponse>(getGetAuthUrl(), {
     ...options,
     method: "GET",
   });
 };
 
-export const getGetSyncProgressQueryKey = (
-  username: string,
+export const getGetAuthQueryKey = () => {
+  return [`/api/koreader/users/auth`] as const;
+};
+
+export const getGetAuthQueryOptions = <
+  TData = Awaited<ReturnType<typeof getAuth>>,
+  TError = ErrorType<void>,
+>(options?: {
+  query?: UseQueryOptions<Awaited<ReturnType<typeof getAuth>>, TError, TData>;
+  request?: SecondParameter<typeof customFetch>;
+}) => {
+  const { query: queryOptions, request: requestOptions } = options ?? {};
+
+  const queryKey = queryOptions?.queryKey ?? getGetAuthQueryKey();
+
+  const queryFn: QueryFunction<Awaited<ReturnType<typeof getAuth>>> = ({
+    signal,
+  }) => getAuth({ signal, ...requestOptions });
+
+  return { queryKey, queryFn, ...queryOptions } as UseQueryOptions<
+    Awaited<ReturnType<typeof getAuth>>,
+    TError,
+    TData
+  > & { queryKey: QueryKey };
+};
+
+export type GetAuthQueryResult = NonNullable<
+  Awaited<ReturnType<typeof getAuth>>
+>;
+export type GetAuthQueryError = ErrorType<void>;
+
+/**
+ * @summary Authenticate user
+ */
+
+export function useGetAuth<
+  TData = Awaited<ReturnType<typeof getAuth>>,
+  TError = ErrorType<void>,
+>(options?: {
+  query?: UseQueryOptions<Awaited<ReturnType<typeof getAuth>>, TError, TData>;
+  request?: SecondParameter<typeof customFetch>;
+}): UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+  const queryOptions = getGetAuthQueryOptions(options);
+
+  const query = useQuery(queryOptions) as UseQueryResult<TData, TError> & {
+    queryKey: QueryKey;
+  };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
+
+/**
+ * Returns stored reading progress for a document MD5. Credentials passed via x-auth-user and x-auth-key headers.
+
+ * @summary Get reading progress for a document
+ */
+export const getGetSyncProgressUrl = (document: string) => {
+  return `/api/koreader/syncs/progress/${document}`;
+};
+
+export const getSyncProgress = async (
   document: string,
-) => {
-  return [`/api/koreader/syncs/${username}/${document}`] as const;
+  options?: RequestInit,
+): Promise<SyncProgress> => {
+  return customFetch<SyncProgress>(getGetSyncProgressUrl(document), {
+    ...options,
+    method: "GET",
+  });
+};
+
+export const getGetSyncProgressQueryKey = (document: string) => {
+  return [`/api/koreader/syncs/progress/${document}`] as const;
 };
 
 export const getGetSyncProgressQueryOptions = <
   TData = Awaited<ReturnType<typeof getSyncProgress>>,
   TError = ErrorType<void>,
 >(
-  username: string,
   document: string,
   options?: {
     query?: UseQueryOptions<
@@ -407,16 +559,16 @@ export const getGetSyncProgressQueryOptions = <
   const { query: queryOptions, request: requestOptions } = options ?? {};
 
   const queryKey =
-    queryOptions?.queryKey ?? getGetSyncProgressQueryKey(username, document);
+    queryOptions?.queryKey ?? getGetSyncProgressQueryKey(document);
 
   const queryFn: QueryFunction<Awaited<ReturnType<typeof getSyncProgress>>> = ({
     signal,
-  }) => getSyncProgress(username, document, { signal, ...requestOptions });
+  }) => getSyncProgress(document, { signal, ...requestOptions });
 
   return {
     queryKey,
     queryFn,
-    enabled: !!(username && document),
+    enabled: !!document,
     ...queryOptions,
   } as UseQueryOptions<
     Awaited<ReturnType<typeof getSyncProgress>>,
@@ -438,7 +590,6 @@ export function useGetSyncProgress<
   TData = Awaited<ReturnType<typeof getSyncProgress>>,
   TError = ErrorType<void>,
 >(
-  username: string,
   document: string,
   options?: {
     query?: UseQueryOptions<
@@ -449,11 +600,7 @@ export function useGetSyncProgress<
     request?: SecondParameter<typeof customFetch>;
   },
 ): UseQueryResult<TData, TError> & { queryKey: QueryKey } {
-  const queryOptions = getGetSyncProgressQueryOptions(
-    username,
-    document,
-    options,
-  );
+  const queryOptions = getGetSyncProgressQueryOptions(document, options);
 
   const query = useQuery(queryOptions) as UseQueryResult<TData, TError> & {
     queryKey: QueryKey;
@@ -463,31 +610,24 @@ export function useGetSyncProgress<
 }
 
 /**
- * KOReader progress sync PUT endpoint
+ * Saves reading progress for a document. Credentials passed via x-auth-user and x-auth-key headers.
+
  * @summary Update reading progress for a document
  */
-export const getUpdateSyncProgressUrl = (
-  username: string,
-  document: string,
-) => {
-  return `/api/koreader/syncs/${username}/${document}`;
+export const getUpdateSyncProgressUrl = () => {
+  return `/api/koreader/syncs/progress`;
 };
 
 export const updateSyncProgress = async (
-  username: string,
-  document: string,
   syncProgressUpdate: SyncProgressUpdate,
   options?: RequestInit,
 ): Promise<SyncProgress> => {
-  return customFetch<SyncProgress>(
-    getUpdateSyncProgressUrl(username, document),
-    {
-      ...options,
-      method: "PUT",
-      headers: { "Content-Type": "application/json", ...options?.headers },
-      body: JSON.stringify(syncProgressUpdate),
-    },
-  );
+  return customFetch<SyncProgress>(getUpdateSyncProgressUrl(), {
+    ...options,
+    method: "PUT",
+    headers: { "Content-Type": "application/json", ...options?.headers },
+    body: JSON.stringify(syncProgressUpdate),
+  });
 };
 
 export const getUpdateSyncProgressMutationOptions = <
@@ -497,14 +637,14 @@ export const getUpdateSyncProgressMutationOptions = <
   mutation?: UseMutationOptions<
     Awaited<ReturnType<typeof updateSyncProgress>>,
     TError,
-    { username: string; document: string; data: BodyType<SyncProgressUpdate> },
+    { data: BodyType<SyncProgressUpdate> },
     TContext
   >;
   request?: SecondParameter<typeof customFetch>;
 }): UseMutationOptions<
   Awaited<ReturnType<typeof updateSyncProgress>>,
   TError,
-  { username: string; document: string; data: BodyType<SyncProgressUpdate> },
+  { data: BodyType<SyncProgressUpdate> },
   TContext
 > => {
   const mutationKey = ["updateSyncProgress"];
@@ -518,11 +658,11 @@ export const getUpdateSyncProgressMutationOptions = <
 
   const mutationFn: MutationFunction<
     Awaited<ReturnType<typeof updateSyncProgress>>,
-    { username: string; document: string; data: BodyType<SyncProgressUpdate> }
+    { data: BodyType<SyncProgressUpdate> }
   > = (props) => {
-    const { username, document, data } = props ?? {};
+    const { data } = props ?? {};
 
-    return updateSyncProgress(username, document, data, requestOptions);
+    return updateSyncProgress(data, requestOptions);
   };
 
   return { mutationFn, ...mutationOptions };
@@ -544,96 +684,18 @@ export const useUpdateSyncProgress = <
   mutation?: UseMutationOptions<
     Awaited<ReturnType<typeof updateSyncProgress>>,
     TError,
-    { username: string; document: string; data: BodyType<SyncProgressUpdate> },
+    { data: BodyType<SyncProgressUpdate> },
     TContext
   >;
   request?: SecondParameter<typeof customFetch>;
 }): UseMutationResult<
   Awaited<ReturnType<typeof updateSyncProgress>>,
   TError,
-  { username: string; document: string; data: BodyType<SyncProgressUpdate> },
+  { data: BodyType<SyncProgressUpdate> },
   TContext
 > => {
   return useMutation(getUpdateSyncProgressMutationOptions(options));
 };
-
-/**
- * KOReader user authentication check
- * @summary Authenticate user
- */
-export const getGetAuthUrl = (username: string) => {
-  return `/api/koreader/users/${username}/auth`;
-};
-
-export const getAuth = async (
-  username: string,
-  options?: RequestInit,
-): Promise<AuthResponse> => {
-  return customFetch<AuthResponse>(getGetAuthUrl(username), {
-    ...options,
-    method: "GET",
-  });
-};
-
-export const getGetAuthQueryKey = (username: string) => {
-  return [`/api/koreader/users/${username}/auth`] as const;
-};
-
-export const getGetAuthQueryOptions = <
-  TData = Awaited<ReturnType<typeof getAuth>>,
-  TError = ErrorType<void>,
->(
-  username: string,
-  options?: {
-    query?: UseQueryOptions<Awaited<ReturnType<typeof getAuth>>, TError, TData>;
-    request?: SecondParameter<typeof customFetch>;
-  },
-) => {
-  const { query: queryOptions, request: requestOptions } = options ?? {};
-
-  const queryKey = queryOptions?.queryKey ?? getGetAuthQueryKey(username);
-
-  const queryFn: QueryFunction<Awaited<ReturnType<typeof getAuth>>> = ({
-    signal,
-  }) => getAuth(username, { signal, ...requestOptions });
-
-  return {
-    queryKey,
-    queryFn,
-    enabled: !!username,
-    ...queryOptions,
-  } as UseQueryOptions<Awaited<ReturnType<typeof getAuth>>, TError, TData> & {
-    queryKey: QueryKey;
-  };
-};
-
-export type GetAuthQueryResult = NonNullable<
-  Awaited<ReturnType<typeof getAuth>>
->;
-export type GetAuthQueryError = ErrorType<void>;
-
-/**
- * @summary Authenticate user
- */
-
-export function useGetAuth<
-  TData = Awaited<ReturnType<typeof getAuth>>,
-  TError = ErrorType<void>,
->(
-  username: string,
-  options?: {
-    query?: UseQueryOptions<Awaited<ReturnType<typeof getAuth>>, TError, TData>;
-    request?: SecondParameter<typeof customFetch>;
-  },
-): UseQueryResult<TData, TError> & { queryKey: QueryKey } {
-  const queryOptions = getGetAuthQueryOptions(username, options);
-
-  const query = useQuery(queryOptions) as UseQueryResult<TData, TError> & {
-    queryKey: QueryKey;
-  };
-
-  return { ...query, queryKey: queryOptions.queryKey };
-}
 
 /**
  * Returns current settings including library path and data directory info

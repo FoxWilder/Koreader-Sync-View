@@ -69,6 +69,15 @@ jobs:
           BASE_PATH: /
           PORT: 3000
 
+      # ── Build dashboard for GitHub Pages (different base path) ──
+      - name: Build dashboard for GitHub Pages
+        if: github.ref == 'refs/heads/main' && github.event_name == 'push'
+        run: pnpm --filter @workspace/koreader-dashboard run build
+        env:
+          BASE_PATH: /Koreader-Sync-View/
+          PORT: 3000
+          PAGES_BUILD: "true"
+
       # ── Build API server ──────────────────────
       - name: Build API server
         run: pnpm --filter @workspace/api-server run build
@@ -105,11 +114,15 @@ jobs:
         if: github.ref == 'refs/heads/main' && github.event_name == 'push'
         uses: actions/configure-pages@v5
 
+      - name: Save Pages build
+        if: github.ref == 'refs/heads/main' && github.event_name == 'push'
+        run: cp -r artifacts/koreader-dashboard/dist/public artifacts/koreader-dashboard/dist/pages
+
       - name: Upload Pages artifact
         if: github.ref == 'refs/heads/main' && github.event_name == 'push'
         uses: actions/upload-pages-artifact@v3
         with:
-          path: artifacts/koreader-dashboard/dist/public
+          path: artifacts/koreader-dashboard/dist/pages
 
   # ──────────────────────────────────────────────
   # Release — only on push to main

@@ -7,6 +7,8 @@
  */
 
 export interface SyncProgressUpdate {
+  /** MD5 hash identifying the document */
+  document: string;
   progress: string;
   percentage: number;
   device: string;

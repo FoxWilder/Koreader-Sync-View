@@ -3,9 +3,8 @@ import {
   SearchLibraryQueryParams,
   GetCoverParams,
   GetSyncProgressParams,
-  UpdateSyncProgressParams,
   UpdateSyncProgressBody,
-  GetAuthParams,
+  RegisterUserBody,
 } from "@workspace/api-zod";
 import {
   getStats,
@@ -14,6 +13,7 @@ import {
   getSyncRecord,
   upsertSyncRecord,
   getOrCreateUser,
+  registerUser,
 } from "../lib/koreader-store";
 
 const router: IRouter = Router();
@@ -72,51 +72,87 @@ router.get("/koreader/cover/:md5", async (req, res): Promise<void> => {
   res.send(PLACEHOLDER_SVG);
 });
 
-// GET /api/koreader/syncs/:username/:document
-router.get("/koreader/syncs/:username/:document", async (req, res): Promise<void> => {
+// POST /api/koreader/users/create — register a new user
+router.post("/koreader/users/create", async (req, res): Promise<void> => {
+  const body = RegisterUserBody.safeParse(req.body);
+  if (!body.success) {
+    res.status(400).json({ message: "Missing username or password" });
+    return;
+  }
+  const result = registerUser(body.data.username, body.data.password);
+  if (result.registered) {
+    res.status(201).json({ message: "User registered" });
+  } else {
+    res.status(402).json({ message: "Username already registered" });
+  }
+});
+
+// GET /api/koreader/users/auth — authenticate via x-auth-user / x-auth-key headers
+router.get("/koreader/users/auth", async (req, res): Promise<void> => {
+  const username = req.headers["x-auth-user"];
+  const userkey  = req.headers["x-auth-key"];
+  if (!username || !userkey || typeof username !== "string" || typeof userkey !== "string") {
+    res.status(401).json({ message: "Unauthorized" });
+    return;
+  }
+  const auth = getOrCreateUser(username, userkey);
+  if (!auth.authorized) {
+    res.status(401).json({ message: "Unauthorized" });
+    return;
+  }
+  res.json({ authorized: true, user: username });
+});
+
+// GET /api/koreader/syncs/progress/:document — get progress (auth via headers)
+router.get("/koreader/syncs/progress/:document", async (req, res): Promise<void> => {
+  const username = req.headers["x-auth-user"];
+  const userkey  = req.headers["x-auth-key"];
+  if (!username || typeof username !== "string" || typeof userkey !== "string") {
+    res.status(401).json({ message: "Unauthorized" });
+    return;
+  }
+  const auth = getOrCreateUser(username, userkey as string);
+  if (!auth.authorized) {
+    res.status(401).json({ message: "Unauthorized" });
+    return;
+  }
+
   const params = GetSyncProgressParams.safeParse(req.params);
   if (!params.success) {
-    res.status(400).json({ error: params.error.message });
+    res.status(400).json({ message: "Bad request" });
     return;
   }
 
-  const record = getSyncRecord(params.data.username, params.data.document);
+  const record = getSyncRecord(username, params.data.document);
   if (!record) {
-    res.status(404).json({ error: "Not found" });
+    res.status(404).json({ message: "Not found" });
     return;
   }
-
   res.json(record);
 });
 
-// PUT /api/koreader/syncs/:username/:document
-router.put("/koreader/syncs/:username/:document", async (req, res): Promise<void> => {
-  const params = UpdateSyncProgressParams.safeParse(req.params);
-  if (!params.success) {
-    res.status(400).json({ error: params.error.message });
+// PUT /api/koreader/syncs/progress — update progress (auth via headers, document in body)
+router.put("/koreader/syncs/progress", async (req, res): Promise<void> => {
+  const username = req.headers["x-auth-user"];
+  const userkey  = req.headers["x-auth-key"];
+  if (!username || typeof username !== "string" || typeof userkey !== "string") {
+    res.status(401).json({ message: "Unauthorized" });
+    return;
+  }
+  const auth = getOrCreateUser(username, userkey as string);
+  if (!auth.authorized) {
+    res.status(401).json({ message: "Unauthorized" });
     return;
   }
 
   const body = UpdateSyncProgressBody.safeParse(req.body);
   if (!body.success) {
-    res.status(400).json({ error: body.error.message });
+    res.status(400).json({ message: "Bad request" });
     return;
   }
 
-  const record = upsertSyncRecord(params.data.username, params.data.document, body.data);
+  const record = upsertSyncRecord(username, body.data.document, body.data);
   res.json(record);
-});
-
-// GET /api/koreader/users/:username/auth
-router.get("/koreader/users/:username/auth", async (req, res): Promise<void> => {
-  const params = GetAuthParams.safeParse(req.params);
-  if (!params.success) {
-    res.status(400).json({ error: params.error.message });
-    return;
-  }
-
-  const auth = getOrCreateUser(params.data.username);
-  res.json(auth);
 });
 
 export default router;

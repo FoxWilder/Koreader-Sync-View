@@ -78,7 +78,15 @@ export interface SyncProgress {
   timestamp: number;
 }
 
+export interface RegisterUserBody {
+  username: string;
+  /** MD5-hashed password (hashed client-side by KOReader) */
+  password: string;
+}
+
 export interface SyncProgressUpdate {
+  /** MD5 hash identifying the document */
+  document: string;
   progress: string;
   percentage: number;
   device: string;

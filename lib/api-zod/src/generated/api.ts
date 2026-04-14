@@ -134,11 +134,33 @@ export const GetCoverParams = zod.object({
 });
 
 /**
- * KOReader progress sync GET endpoint
+ * KOReader user registration. password is the MD5 hash of the user's password, hashed client-side by KOReader before sending.
+
+ * @summary Register a new user
+ */
+export const RegisterUserBody = zod.object({
+  username: zod.string(),
+  password: zod
+    .string()
+    .describe("MD5-hashed password (hashed client-side by KOReader)"),
+});
+
+/**
+ * KOReader user authentication. Credentials passed via x-auth-user and x-auth-key request headers.
+
+ * @summary Authenticate user
+ */
+export const GetAuthResponse = zod.object({
+  authorized: zod.boolean(),
+  user: zod.string(),
+});
+
+/**
+ * Returns stored reading progress for a document MD5. Credentials passed via x-auth-user and x-auth-key headers.
+
  * @summary Get reading progress for a document
  */
 export const GetSyncProgressParams = zod.object({
-  username: zod.coerce.string(),
   document: zod.coerce.string(),
 });
 
@@ -152,15 +174,12 @@ export const GetSyncProgressResponse = zod.object({
 });
 
 /**
- * KOReader progress sync PUT endpoint
+ * Saves reading progress for a document. Credentials passed via x-auth-user and x-auth-key headers.
+
  * @summary Update reading progress for a document
  */
-export const UpdateSyncProgressParams = zod.object({
-  username: zod.coerce.string(),
-  document: zod.coerce.string(),
-});
-
 export const UpdateSyncProgressBody = zod.object({
+  document: zod.string().describe("MD5 hash identifying the document"),
   progress: zod.string(),
   percentage: zod.number(),
   device: zod.string(),
@@ -174,19 +193,6 @@ export const UpdateSyncProgressResponse = zod.object({
   device: zod.string(),
   device_id: zod.string(),
   timestamp: zod.number(),
-});
-
-/**
- * KOReader user authentication check
- * @summary Authenticate user
- */
-export const GetAuthParams = zod.object({
-  username: zod.coerce.string(),
-});
-
-export const GetAuthResponse = zod.object({
-  authorized: zod.boolean(),
-  user: zod.string(),
 });
 
 /**

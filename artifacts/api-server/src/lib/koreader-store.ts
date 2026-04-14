@@ -504,12 +504,39 @@ export function upsertSyncRecord(
   return record as SyncRecord;
 }
 
-export function getOrCreateUser(username: string): { authorized: boolean; user: string } {
+/**
+ * Register a new user. Returns registered=true on success, false if username taken.
+ * password is the MD5-hashed key sent by KOReader.
+ */
+export function registerUser(username: string, password: string): { registered: boolean } {
+  const uDir = userDir(username);
+  fs.mkdirSync(uDir, { recursive: true });
+  const authFile = path.join(uDir, "auth.json");
+  if (fs.existsSync(authFile)) {
+    return { registered: false };
+  }
+  safeWriteJson(authFile, { username, userkey: password, created: new Date().toISOString() });
+  return { registered: true };
+}
+
+/**
+ * Authenticate a user by username + userkey (MD5 password).
+ * Auto-creates the user on first auth if they don't exist (permissive mode).
+ */
+export function getOrCreateUser(username: string, userkey: string): { authorized: boolean; user: string } {
   const uDir = userDir(username);
   fs.mkdirSync(uDir, { recursive: true });
   const authFile = path.join(uDir, "auth.json");
   if (!fs.existsSync(authFile)) {
-    safeWriteJson(authFile, { username, created: new Date().toISOString() });
+    // First time — create the user record
+    safeWriteJson(authFile, { username, userkey, created: new Date().toISOString() });
+    return { authorized: true, user: username };
   }
-  return { authorized: true, user: username };
+  const stored = safeReadJson(authFile) as Record<string, string> | null;
+  // If no userkey stored (legacy record), accept and update
+  if (!stored?.userkey) {
+    safeWriteJson(authFile, { ...(stored || {}), username, userkey });
+    return { authorized: true, user: username };
+  }
+  return { authorized: stored.userkey === userkey, user: username };
 }

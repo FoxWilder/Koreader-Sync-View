@@ -9,6 +9,7 @@
 export * from "./authResponse";
 export * from "./bookCard";
 export * from "./healthStatus";
+export * from "./registerUserBody";
 export * from "./scanStatus";
 export * from "./searchLibraryParams";
 export * from "./settings";
