@@ -6,6 +6,11 @@
  * OpenAPI spec version: 0.1.0
  */
 
-export interface HealthStatus {
-  status: string;
+export interface SyncProgress {
+  document: string;
+  progress: string;
+  percentage: number;
+  device: string;
+  device_id: string;
+  timestamp: number;
 }

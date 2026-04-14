@@ -3,13 +3,21 @@ info:
   # Do not change the title, if the title changes, the import paths will be broken
   title: Api
   version: 0.1.0
-  description: API specification
+  description: KOReader Smart Library + Progress Sync API
 servers:
   - url: /api
     description: Base API path
 tags:
   - name: health
     description: Health operations
+  - name: stats
+    description: Reading statistics
+  - name: library
+    description: Library search
+  - name: covers
+    description: Book cover images
+  - name: sync
+    description: KOReader progress sync
 paths:
   /healthz:
     get:
@@ -24,6 +32,168 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/HealthStatus"
+
+  /koreader/stats:
+    get:
+      operationId: getStats
+      tags: [stats]
+      summary: Get reading statistics
+      description: Returns aggregate reading stats, recent activity, and user breakdowns
+      responses:
+        "200":
+          description: Stats
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/StatsResponse"
+
+  /koreader/search:
+    get:
+      operationId: searchLibrary
+      tags: [library]
+      summary: Search library
+      description: Search the book library by title or filename
+      parameters:
+        - name: q
+          in: query
+          required: true
+          schema:
+            type: string
+          description: Search query
+        - name: ext
+          in: query
+          required: false
+          schema:
+            type: string
+          description: Filter by file extension (epub, pdf, etc)
+        - name: cover
+          in: query
+          required: false
+          schema:
+            type: string
+          description: Set to "1" to only return books with covers
+        - name: recent
+          in: query
+          required: false
+          schema:
+            type: string
+          description: Set to "1" to only return books with reading progress
+      responses:
+        "200":
+          description: Search results
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/BookCard"
+
+  /koreader/cover/{md5}:
+    get:
+      operationId: getCover
+      tags: [covers]
+      summary: Get book cover image
+      description: Returns book cover image by MD5 hash. Returns SVG placeholder if no cover exists.
+      parameters:
+        - name: md5
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Cover image
+          content:
+            image/jpeg:
+              schema:
+                type: string
+                format: binary
+            image/png:
+              schema:
+                type: string
+                format: binary
+            image/svg+xml:
+              schema:
+                type: string
+
+  /koreader/syncs/{username}/{document}:
+    get:
+      operationId: getSyncProgress
+      tags: [sync]
+      summary: Get reading progress for a document
+      description: KOReader progress sync GET endpoint
+      parameters:
+        - name: username
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: document
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Progress data
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SyncProgress"
+        "404":
+          description: Not found
+    put:
+      operationId: updateSyncProgress
+      tags: [sync]
+      summary: Update reading progress for a document
+      description: KOReader progress sync PUT endpoint
+      parameters:
+        - name: username
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: document
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/SyncProgressUpdate"
+      responses:
+        "200":
+          description: Updated
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SyncProgress"
+
+  /koreader/users/{username}/auth:
+    get:
+      operationId: getAuth
+      tags: [sync]
+      summary: Authenticate user
+      description: KOReader user authentication check
+      parameters:
+        - name: username
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Authenticated
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AuthResponse"
+        "401":
+          description: Unauthorized
+
 components:
   schemas:
     HealthStatus:
@@ -34,3 +204,205 @@ components:
       required:
         - status
 
+    BookCard:
+      type: object
+      properties:
+        md5:
+          type: string
+        name:
+          type: string
+        display_title:
+          type: string
+        display_author:
+          type: string
+        path:
+          type: ["string", "null"]
+        ext:
+          type: string
+        folder:
+          type: string
+        size_human:
+          type: string
+        mtime_iso:
+          type: string
+        has_cover:
+          type: boolean
+        last_progress:
+          type: number
+        last_read_iso:
+          type: string
+        last_user:
+          type: string
+        last_device:
+          type: string
+        last_ts:
+          type: number
+        epub_has_meta:
+          type: boolean
+        epub_title:
+          type: string
+        epub_authors:
+          type: array
+          items:
+            type: string
+        epub_publisher:
+          type: string
+        epub_language:
+          type: string
+        epub_date:
+          type: string
+        epub_series:
+          type: string
+        epub_series_index:
+          type: string
+        epub_subjects:
+          type: array
+          items:
+            type: string
+        epub_identifiers:
+          type: array
+          items:
+            type: string
+        epub_description:
+          type: string
+      required:
+        - md5
+        - name
+        - display_title
+        - display_author
+        - ext
+        - folder
+        - size_human
+        - mtime_iso
+        - has_cover
+        - last_progress
+        - last_read_iso
+        - last_user
+        - last_device
+        - last_ts
+        - epub_has_meta
+        - epub_title
+        - epub_authors
+        - epub_publisher
+        - epub_language
+        - epub_date
+        - epub_series
+        - epub_series_index
+        - epub_subjects
+        - epub_identifiers
+        - epub_description
+
+    UserStat:
+      type: object
+      properties:
+        user:
+          type: string
+        books:
+          type: number
+        last_ts:
+          type: number
+        last_iso:
+          type: string
+        devices:
+          type: array
+          items:
+            type: string
+      required:
+        - user
+        - books
+        - last_ts
+        - last_iso
+        - devices
+
+    StatsResponse:
+      type: object
+      properties:
+        active_books:
+          type: number
+        completed:
+          type: number
+        in_progress:
+          type: number
+        not_started:
+          type: number
+        avg_progress:
+          type: number
+        users:
+          type: number
+        last_activity_iso:
+          type: string
+        last_activity_age:
+          type: string
+        days_active_last14:
+          type: number
+        top_recent:
+          type: array
+          items:
+            $ref: "#/components/schemas/BookCard"
+        users_breakdown:
+          type: array
+          items:
+            $ref: "#/components/schemas/UserStat"
+      required:
+        - active_books
+        - completed
+        - in_progress
+        - not_started
+        - avg_progress
+        - users
+        - last_activity_iso
+        - last_activity_age
+        - days_active_last14
+        - top_recent
+        - users_breakdown
+
+    SyncProgress:
+      type: object
+      properties:
+        document:
+          type: string
+        progress:
+          type: string
+        percentage:
+          type: number
+        device:
+          type: string
+        device_id:
+          type: string
+        timestamp:
+          type: number
+      required:
+        - document
+        - progress
+        - percentage
+        - device
+        - device_id
+        - timestamp
+
+    SyncProgressUpdate:
+      type: object
+      properties:
+        progress:
+          type: string
+        percentage:
+          type: number
+        device:
+          type: string
+        device_id:
+          type: string
+      required:
+        - progress
+        - percentage
+        - device
+        - device_id
+
+    AuthResponse:
+      type: object
+      properties:
+        authorized:
+          type: boolean
+        user:
+          type: string
+      required:
+        - authorized
+        - user

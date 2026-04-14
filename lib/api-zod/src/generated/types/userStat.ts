@@ -6,6 +6,10 @@
  * OpenAPI spec version: 0.1.0
  */
 
-export interface HealthStatus {
-  status: string;
+export interface UserStat {
+  user: string;
+  books: number;
+  last_ts: number;
+  last_iso: string;
+  devices: string[];
 }
