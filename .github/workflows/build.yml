@@ -62,7 +62,7 @@ jobs:
           echo "VERSION=$VERSION" >> $GITHUB_OUTPUT
           echo "Releasing $VERSION"
 
-      # ── Build dashboard for GitHub Pages first (different base path) ──
+      # ── Build dashboard for GitHub Pages first (different base path + demo data) ──
       # Must run before the server dashboard build so the Pages output is
       # saved before dist/public is overwritten with BASE_PATH=/.
       - name: Build dashboard for GitHub Pages
@@ -71,6 +71,7 @@ jobs:
         env:
           BASE_PATH: /Koreader-Sync-View/
           PORT: 3000
+          VITE_DEMO_MODE: "true"
 
       - name: Save Pages build
         if: github.ref == 'refs/heads/main' && github.event_name == 'push'
