@@ -1,6 +1,7 @@
 import fs from "fs";
 import path from "path";
 import { logger } from "./logger";
+import { readEpubMeta } from "./koreader-settings";
 
 // ---------------------------------------------------------------------------
 // Types
@@ -32,6 +33,7 @@ export interface BookCard {
   epub_subjects: string[];
   epub_identifiers: string[];
   epub_description: string;
+  epub_page_count: number;
 }
 
 export interface UserStat {
@@ -297,12 +299,13 @@ function makeBookCard(md5: string, name: string, filePath: string | null): BookC
   }
 
   const last = LAST_BY_MD5[md5];
+  const meta = ext === "epub" ? readEpubMeta(md5) : null;
 
   return {
     md5,
     name,
-    display_title: name,
-    display_author: "",
+    display_title: meta?.title || path.basename(name, path.extname(name)),
+    display_author: meta?.authors?.join(", ") || "",
     path: filePath,
     ext,
     folder,
@@ -314,17 +317,18 @@ function makeBookCard(md5: string, name: string, filePath: string | null): BookC
     last_user: last?.user || "",
     last_device: last?.device || "",
     last_ts: last?.last_ts || 0,
-    epub_has_meta: false,
-    epub_title: "",
-    epub_authors: [],
-    epub_publisher: "",
-    epub_language: "",
-    epub_date: "",
-    epub_series: "",
-    epub_series_index: "",
-    epub_subjects: [],
-    epub_identifiers: [],
-    epub_description: "",
+    epub_has_meta: !!meta,
+    epub_title: meta?.title || "",
+    epub_authors: meta?.authors || [],
+    epub_publisher: meta?.publisher || "",
+    epub_language: meta?.language || "",
+    epub_date: meta?.date || "",
+    epub_series: meta?.series || "",
+    epub_series_index: meta?.series_index || "",
+    epub_subjects: meta?.subjects || [],
+    epub_identifiers: meta?.identifiers || [],
+    epub_description: meta?.description || "",
+    epub_page_count: meta?.page_count || 0,
   };
 }
 
