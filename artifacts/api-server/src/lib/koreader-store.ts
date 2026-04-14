@@ -63,6 +63,7 @@ export interface StatsResponse {
   last_activity_iso: string;
   last_activity_age: string;
   days_active_last14: number;
+  activity_by_day: Record<string, number>;
   top_recent: BookCard[];
   users_breakdown: UserStat[];
 }
@@ -345,6 +346,7 @@ let AGG_STATS: StatsResponse = {
   last_activity_iso: "",
   last_activity_age: "",
   days_active_last14: 0,
+  activity_by_day: {},
   top_recent: [],
   users_breakdown: [],
 };
@@ -359,9 +361,13 @@ function computeAggregates(): void {
   const lastTs = uniques.reduce((m, r) => Math.max(m, r.last_ts || 0), 0);
 
   const daySet = new Set<string>();
+  const activityByDay: Record<string, number> = {};
   for (const r of RECENT) {
-    if ((r.last_ts || 0) >= now - 14 * 86400) {
-      daySet.add(new Date((r.last_ts > 1e12 ? r.last_ts : r.last_ts * 1000)).toISOString().slice(0, 10));
+    const ts = r.last_ts || 0;
+    if (ts >= now - 112 * 86400) { // 16 weeks
+      const day = new Date((ts > 1e12 ? ts : ts * 1000)).toISOString().slice(0, 10);
+      activityByDay[day] = (activityByDay[day] || 0) + 1;
+      if (ts >= now - 14 * 86400) daySet.add(day);
     }
   }
 
@@ -386,6 +392,7 @@ function computeAggregates(): void {
     last_activity_iso: lastTs ? isoTs(lastTs) : "",
     last_activity_age: lastTs ? humanAge(now - lastTs) : "",
     days_active_last14: daySet.size,
+    activity_by_day: activityByDay,
     top_recent: topRecentCards,
     users_breakdown: usersBreakdown,
   };
@@ -420,21 +427,45 @@ export function searchLibrary(
   opts: { ext?: string; onlyCover?: boolean; onlyRecent?: boolean; limit?: number } = {}
 ): BookCard[] {
   const query = (q || "").toLowerCase().trim();
-  if (!query) return [];
-
   const { ext, onlyCover, onlyRecent, limit = 50 } = opts;
+
+  // With no query and no filters, return nothing (avoid dumping entire library)
+  if (!query && !ext && !onlyCover && !onlyRecent) return [];
+
   const results: Array<BookCard & { score: number }> = [];
 
   for (const b of LIB) {
-    if (!b.name.toLowerCase().includes(query)) continue;
     const card = makeBookCard(b.md5, b.name, b.path || null);
     if (ext && card.ext !== ext) continue;
     if (onlyCover && !card.has_cover) continue;
     if (onlyRecent && !card.last_ts) continue;
 
-    const pos = b.name.toLowerCase().indexOf(query);
-    const score = (pos === 0 ? 0 : 10 + pos) + Math.max(b.name.length - query.length, 0) / 1000;
-    results.push({ ...card, score });
+    if (query) {
+      // Search across filename, title, author, and series
+      const haystack = [
+        b.name,
+        card.display_title,
+        card.display_author,
+        card.epub_series,
+      ].join(" ").toLowerCase();
+
+      if (!haystack.includes(query)) continue;
+
+      // Score: title/author prefix matches rank higher
+      const titlePos  = card.display_title.toLowerCase().indexOf(query);
+      const authorPos = card.display_author.toLowerCase().indexOf(query);
+      const namePos   = b.name.toLowerCase().indexOf(query);
+      const bestPos   = Math.min(
+        titlePos  >= 0 ? titlePos  : Infinity,
+        authorPos >= 0 ? authorPos + 5 : Infinity,
+        namePos   >= 0 ? namePos   + 10 : Infinity,
+      );
+      const score = (bestPos === Infinity ? 999 : bestPos) + Math.max(b.name.length - query.length, 0) / 1000;
+      results.push({ ...card, score });
+    } else {
+      // Filter-only mode — include all matching, sort by last read
+      results.push({ ...card, score: 0 });
+    }
   }
 
   results.sort((a, b) => a.score - b.score || b.last_ts - a.last_ts);

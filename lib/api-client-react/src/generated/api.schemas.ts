@@ -48,6 +48,11 @@ export interface UserStat {
   devices: string[];
 }
 
+/**
+ * Map of ISO date string to sync count for the last 16 weeks
+ */
+export type StatsResponseActivityByDay = { [key: string]: number };
+
 export interface StatsResponse {
   active_books: number;
   completed: number;
@@ -58,6 +63,8 @@ export interface StatsResponse {
   last_activity_iso: string;
   last_activity_age: string;
   days_active_last14: number;
+  /** Map of ISO date string to sync count for the last 16 weeks */
+  activity_by_day: StatsResponseActivityByDay;
   top_recent: BookCard[];
   users_breakdown: UserStat[];
 }

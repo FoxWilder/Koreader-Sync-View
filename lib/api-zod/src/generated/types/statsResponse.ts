@@ -6,6 +6,7 @@
  * OpenAPI spec version: 0.1.0
  */
 import type { BookCard } from "./bookCard";
+import type { StatsResponseActivityByDay } from "./statsResponseActivityByDay";
 import type { UserStat } from "./userStat";
 
 export interface StatsResponse {
@@ -18,6 +19,8 @@ export interface StatsResponse {
   last_activity_iso: string;
   last_activity_age: string;
   days_active_last14: number;
+  /** Map of ISO date string to sync count for the last 16 weeks */
+  activity_by_day: StatsResponseActivityByDay;
   top_recent: BookCard[];
   users_breakdown: UserStat[];
 }

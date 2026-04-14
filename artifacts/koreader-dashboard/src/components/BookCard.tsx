@@ -1,7 +1,8 @@
-import React from "react";
+import React, { useState } from "react";
 import { BookCard as BookCardType } from "@workspace/api-client-react";
 import { Card } from "./ui/card";
 import { Badge } from "./ui/badge";
+import { BookDetailModal } from "./BookDetailModal";
 import {
   BookOpen,
   Clock,
@@ -21,6 +22,7 @@ interface BookCardProps {
 }
 
 export function BookCard({ book, className = "" }: BookCardProps) {
+  const [showModal, setShowModal] = useState(false);
   const isCompleted = book.last_progress >= 99.5;
   const isNotStarted = book.last_progress === 0 || !book.last_progress;
 
@@ -43,7 +45,12 @@ export function BookCard({ book, className = "" }: BookCardProps) {
   const desc   = book.epub_description?.replace(/<[^>]+>/g, " ").replace(/\s+/g, " ").trim();
 
   return (
-    <Card className={`overflow-hidden border-border bg-card/50 backdrop-blur-sm shadow-md transition-all hover:border-primary/50 group ${className}`}>
+    <>
+    {showModal && <BookDetailModal book={book} onClose={() => setShowModal(false)} />}
+    <Card
+      onClick={() => setShowModal(true)}
+      className={`overflow-hidden border-border bg-card/50 backdrop-blur-sm shadow-md transition-all hover:border-primary/50 hover:shadow-primary/10 cursor-pointer group ${className}`}
+    >
       <div className="flex">
         {/* Cover */}
         <div className="relative w-28 shrink-0 bg-muted/30 border-r border-border flex flex-col items-center justify-center self-stretch">
@@ -151,6 +158,7 @@ export function BookCard({ book, className = "" }: BookCardProps) {
         </span>
       </div>
     </Card>
+    </>
   );
 }
 

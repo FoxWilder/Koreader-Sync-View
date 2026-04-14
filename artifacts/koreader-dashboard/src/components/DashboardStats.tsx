@@ -2,7 +2,8 @@ import React from "react";
 import { useGetStats } from "@workspace/api-client-react";
 import { Card, CardContent } from "./ui/card";
 import { BookCard } from "./BookCard";
-import { Book, CheckCircle, Clock, Users, Activity, Target, User } from "lucide-react";
+import { ActivityHeatmap } from "./ActivityHeatmap";
+import { CheckCircle, Clock, Users, Activity, Target, User } from "lucide-react";
 import { formatDistanceToNow, parseISO } from "date-fns";
 import { Badge } from "./ui/badge";
 
@@ -93,6 +94,17 @@ export function DashboardStats() {
                 </Card>
               ))}
             </div>
+          </div>
+        )}
+
+        {/* Activity Heatmap */}
+        {stats.activity_by_day && (
+          <div className="mb-8">
+            <Card className="bg-card/40 border-border/50 backdrop-blur-sm">
+              <CardContent className="p-5">
+                <ActivityHeatmap activityByDay={stats.activity_by_day} />
+              </CardContent>
+            </Card>
           </div>
         )}
 

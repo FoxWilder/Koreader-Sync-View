@@ -29,6 +29,9 @@ export const GetStatsResponse = zod.object({
   last_activity_iso: zod.string(),
   last_activity_age: zod.string(),
   days_active_last14: zod.number(),
+  activity_by_day: zod
+    .record(zod.string(), zod.number())
+    .describe("Map of ISO date string to sync count for the last 16 weeks"),
   top_recent: zod.array(
     zod.object({
       md5: zod.string(),
