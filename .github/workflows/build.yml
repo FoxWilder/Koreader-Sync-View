@@ -62,21 +62,27 @@ jobs:
           echo "VERSION=$VERSION" >> $GITHUB_OUTPUT
           echo "Releasing $VERSION"
 
-      # ── Build dashboard (static, served by API) ──
-      - name: Build dashboard
-        run: pnpm --filter @workspace/koreader-dashboard run build
-        env:
-          BASE_PATH: /
-          PORT: 3000
-
-      # ── Build dashboard for GitHub Pages (different base path) ──
+      # ── Build dashboard for GitHub Pages first (different base path + demo data) ──
+      # Must run before the server dashboard build so the Pages output is
+      # saved before dist/public is overwritten with BASE_PATH=/.
       - name: Build dashboard for GitHub Pages
         if: github.ref == 'refs/heads/main' && github.event_name == 'push'
         run: pnpm --filter @workspace/koreader-dashboard run build
         env:
           BASE_PATH: /Koreader-Sync-View/
           PORT: 3000
-          PAGES_BUILD: "true"
+          VITE_DEMO_MODE: "true"
+
+      - name: Save Pages build
+        if: github.ref == 'refs/heads/main' && github.event_name == 'push'
+        run: cp -r artifacts/koreader-dashboard/dist/public artifacts/koreader-dashboard/dist/pages
+
+      # ── Build dashboard (BASE_PATH=/ for the server bundle) ──
+      - name: Build dashboard
+        run: pnpm --filter @workspace/koreader-dashboard run build
+        env:
+          BASE_PATH: /
+          PORT: 3000
 
       # ── Build API server ──────────────────────
       - name: Build API server
@@ -85,17 +91,12 @@ jobs:
       # ── Bundle release: copy dashboard into server dist ──
       - name: Bundle release
         run: |
-          # Copy static dashboard files into the server dist so Express can serve them
+          # Copy static dashboard files (BASE_PATH=/) into the server dist
           cp -r artifacts/koreader-dashboard/dist/public artifacts/api-server/dist/public
 
-          # Create release directory
           mkdir -p release-bundle
-
-          # Copy all server files
           cp artifacts/api-server/dist/* release-bundle/ 2>/dev/null || true
           cp -r artifacts/api-server/dist/public release-bundle/public
-
-          # Copy deployment script into bundle
           cp koreader-sync.ps1 release-bundle/
 
           echo "Bundle contents:"
@@ -113,10 +114,6 @@ jobs:
       - name: Setup Pages
         if: github.ref == 'refs/heads/main' && github.event_name == 'push'
         uses: actions/configure-pages@v5
-
-      - name: Save Pages build
-        if: github.ref == 'refs/heads/main' && github.event_name == 'push'
-        run: cp -r artifacts/koreader-dashboard/dist/public artifacts/koreader-dashboard/dist/pages
 
       - name: Upload Pages artifact
         if: github.ref == 'refs/heads/main' && github.event_name == 'push'
