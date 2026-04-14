@@ -155,8 +155,19 @@ function* walkDir(dir: string): Generator<string> {
 }
 
 // ---------------------------------------------------------------------------
-// Trigger scan
+// Trigger scan / rebuild
 // ---------------------------------------------------------------------------
+
+/** Wipe the existing cache then run a full scan. */
+export function triggerRebuild(): ScanStatus {
+  if (scanStatus.running) {
+    return getScanStatus();
+  }
+  // Clear cache before scanning so stale entries are removed
+  writeCache({});
+  return triggerScan();
+}
+
 export function triggerScan(): ScanStatus {
   if (scanStatus.running) {
     return getScanStatus();

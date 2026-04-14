@@ -3,6 +3,7 @@ import {
   useGetSettings,
   useUpdateSettings,
   useTriggerScan,
+  useRebuildCache,
   useGetScanStatus,
   getGetSettingsQueryKey,
   getGetScanStatusQueryKey,
@@ -25,6 +26,7 @@ import {
   Info,
   ArrowLeft,
   Play,
+  Trash2,
 } from "lucide-react";
 import { Link } from "wouter";
 
@@ -33,6 +35,7 @@ export default function Settings() {
   const { data: settings, isLoading } = useGetSettings();
   const updateSettings = useUpdateSettings();
   const triggerScan = useTriggerScan();
+  const rebuildCache = useRebuildCache();
   const { data: scanStatus, refetch: refetchScan } = useGetScanStatus({
     query: {
       refetchInterval: (data) =>
@@ -71,14 +74,20 @@ export default function Settings() {
   }
 
   function handleScan() {
-    triggerScan.mutate(
-      undefined,
-      {
-        onSuccess: () => {
-          refetchScan();
-        },
-      }
-    );
+    triggerScan.mutate(undefined, {
+      onSuccess: () => {
+        refetchScan();
+      },
+    });
+  }
+
+  function handleRebuild() {
+    rebuildCache.mutate(undefined, {
+      onSuccess: () => {
+        refetchScan();
+        queryClient.invalidateQueries({ queryKey: getGetSettingsQueryKey() });
+      },
+    });
   }
 
   const scanning = scanStatus?.running ?? false;
@@ -169,15 +178,15 @@ export default function Settings() {
                   <div>
                     <p className="text-sm font-mono text-foreground">Scan Library</p>
                     <p className="text-xs font-mono text-muted-foreground mt-0.5">
-                      Walk the library path recursively and index all ebooks by MD5 hash.
+                      Walk the library path and add any new books to the existing index.
                     </p>
                   </div>
                   <button
                     onClick={handleScan}
-                    disabled={scanning || triggerScan.isPending || !libraryPath}
+                    disabled={scanning || triggerScan.isPending || rebuildCache.isPending || !libraryPath}
                     className="flex items-center gap-2 px-5 py-2 rounded-lg border border-primary/40 text-primary font-mono text-sm hover:bg-primary/10 transition-colors disabled:opacity-50 whitespace-nowrap"
                   >
-                    {scanning ? (
+                    {scanning && !rebuildCache.isPending ? (
                       <>
                         <Loader2 className="w-4 h-4 animate-spin" />
                         Scanning...
@@ -186,6 +195,33 @@ export default function Settings() {
                       <>
                         <Play className="w-4 h-4" />
                         Scan Library
+                      </>
+                    )}
+                  </button>
+                </div>
+
+                <div className="flex items-center justify-between gap-4">
+                  <div>
+                    <p className="text-sm font-mono text-foreground">Rebuild MD5 Cache</p>
+                    <p className="text-xs font-mono text-muted-foreground mt-0.5">
+                      Wipe the existing index and rebuild it from scratch. Use this after
+                      renaming files or to fix mismatched hashes.
+                    </p>
+                  </div>
+                  <button
+                    onClick={handleRebuild}
+                    disabled={scanning || rebuildCache.isPending || !libraryPath}
+                    className="flex items-center gap-2 px-5 py-2 rounded-lg border border-destructive/40 text-destructive font-mono text-sm hover:bg-destructive/10 transition-colors disabled:opacity-50 whitespace-nowrap"
+                  >
+                    {rebuildCache.isPending || (scanning && rebuildCache.isSuccess) ? (
+                      <>
+                        <Loader2 className="w-4 h-4 animate-spin" />
+                        Rebuilding...
+                      </>
+                    ) : (
+                      <>
+                        <Trash2 className="w-4 h-4" />
+                        Rebuild Cache
                       </>
                     )}
                   </button>

@@ -242,6 +242,20 @@ paths:
               schema:
                 $ref: "#/components/schemas/ScanStatus"
 
+  /koreader/settings/rebuild:
+    post:
+      operationId: rebuildCache
+      tags: [settings]
+      summary: Rebuild MD5 cache
+      description: Wipe the existing MD5 cache and run a full scan from scratch
+      responses:
+        "200":
+          description: Rebuild started
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ScanStatus"
+
   /koreader/settings/scan/status:
     get:
       operationId: getScanStatus

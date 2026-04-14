@@ -4,6 +4,7 @@ import {
   getSettings,
   updateLibraryPath,
   triggerScan,
+  triggerRebuild,
   getScanStatus,
 } from "../lib/koreader-settings";
 
@@ -35,6 +36,13 @@ router.post("/koreader/settings/scan", async (_req, res): Promise<void> => {
 // GET /api/koreader/settings/scan/status
 router.get("/koreader/settings/scan/status", async (_req, res): Promise<void> => {
   res.json(getScanStatus());
+});
+
+// POST /api/koreader/settings/rebuild
+// Clears the existing cache then runs a full scan from scratch.
+router.post("/koreader/settings/rebuild", async (_req, res): Promise<void> => {
+  const status = triggerRebuild();
+  res.json(status);
 });
 
 export default router;
