@@ -27,6 +27,9 @@ import {
   ArrowLeft,
   Play,
   Trash2,
+  Wifi,
+  Copy,
+  Check,
 } from "lucide-react";
 import { Link } from "wouter";
 
@@ -89,6 +92,18 @@ export default function Settings() {
       },
     });
   }
+
+  const [copied, setCopied] = useState<string | null>(null);
+  function copyToClipboard(text: string, key: string) {
+    navigator.clipboard.writeText(text).then(() => {
+      setCopied(key);
+      setTimeout(() => setCopied(null), 2000);
+    });
+  }
+
+  const syncServerUrl = typeof window !== "undefined"
+    ? `${window.location.protocol}//${window.location.host}/api/koreader`
+    : "/api/koreader";
 
   const scanning = scanStatus?.running ?? false;
   const scanDone =
@@ -378,6 +393,87 @@ export default function Settings() {
           </Card>
         </section>
 
+        {/* KOReader Sync Configuration */}
+        <section>
+          <h2 className="text-xs font-mono text-muted-foreground uppercase tracking-widest mb-4 flex items-center gap-2">
+            <Wifi className="w-4 h-4" />
+            KOReader Sync Configuration
+          </h2>
+          <Card className="bg-card/40 border-border/50">
+            <CardContent className="p-6 space-y-5">
+              <div className="rounded-lg border border-primary/20 bg-primary/5 p-4 flex gap-3">
+                <Info className="w-4 h-4 text-primary shrink-0 mt-0.5" />
+                <p className="text-sm font-mono text-muted-foreground leading-relaxed">
+                  In KOReader, go to{" "}
+                  <span className="text-foreground">Tools → Progress sync → Custom sync server</span>{" "}
+                  and enter the details below. Use any username and password — the server
+                  auto-creates accounts on first login.
+                </p>
+              </div>
+
+              <div className="space-y-3">
+                <SyncConfigRow
+                  label="Server URL"
+                  value={syncServerUrl}
+                  onCopy={() => copyToClipboard(syncServerUrl, "url")}
+                  copied={copied === "url"}
+                />
+                <SyncConfigRow
+                  label="Username"
+                  value="your-name  (any value)"
+                  hint
+                />
+                <SyncConfigRow
+                  label="Password"
+                  value="any-password  (any value)"
+                  hint
+                />
+              </div>
+
+              <div className="rounded-lg border border-border/50 bg-background/70 p-4 space-y-2">
+                <p className="text-[10px] font-mono text-muted-foreground uppercase tracking-wider mb-3">
+                  API endpoints (KOReader protocol)
+                </p>
+                <div className="space-y-1.5 text-[11px] font-mono text-muted-foreground">
+                  <div className="flex gap-3">
+                    <span className="text-primary/70 w-10 shrink-0">POST</span>
+                    <span>/api/koreader/users/create</span>
+                    <span className="text-muted-foreground/50 ml-auto">register</span>
+                  </div>
+                  <div className="flex gap-3">
+                    <span className="text-blue-400/70 w-10 shrink-0">GET</span>
+                    <span>/api/koreader/users/auth</span>
+                    <span className="text-muted-foreground/50 ml-auto">authenticate</span>
+                  </div>
+                  <div className="flex gap-3">
+                    <span className="text-blue-400/70 w-10 shrink-0">GET</span>
+                    <span>/api/koreader/syncs/progress/:document</span>
+                    <span className="text-muted-foreground/50 ml-auto">pull progress</span>
+                  </div>
+                  <div className="flex gap-3">
+                    <span className="text-amber-400/70 w-10 shrink-0">PUT</span>
+                    <span>/api/koreader/syncs/progress</span>
+                    <span className="text-muted-foreground/50 ml-auto">push progress</span>
+                  </div>
+                </div>
+              </div>
+
+              <div className="rounded-lg border border-border/50 bg-background/70 p-4 space-y-2">
+                <p className="text-[10px] font-mono text-muted-foreground uppercase tracking-wider mb-2">
+                  Document matching method
+                </p>
+                <p className="text-xs font-mono text-muted-foreground leading-relaxed">
+                  In KOReader, set{" "}
+                  <span className="text-foreground">Document matching method → Filename</span>.
+                  This server identifies books by{" "}
+                  <code className="text-foreground bg-background/50 px-1 py-0.5 rounded text-[10px]">MD5(filename)</code>,
+                  matching KOReader's filename-based checksum mode.
+                </p>
+              </div>
+            </CardContent>
+          </Card>
+        </section>
+
         {/* Supported formats */}
         <section>
           <h2 className="text-xs font-mono text-muted-foreground uppercase tracking-widest mb-4 flex items-center gap-2">
@@ -438,6 +534,40 @@ function PathRow({
         <code className="text-xs font-mono text-foreground bg-background/60 border border-border/50 rounded px-2 py-1 block break-all">
           {value || "(not set)"}
         </code>
+      )}
+    </div>
+  );
+}
+
+function SyncConfigRow({
+  label,
+  value,
+  onCopy,
+  copied,
+  hint,
+}: {
+  label: string;
+  value: string;
+  onCopy?: () => void;
+  copied?: boolean;
+  hint?: boolean;
+}) {
+  return (
+    <div className="rounded-lg border border-border/50 bg-background/30 p-3 flex items-center gap-3">
+      <div className="flex-1 min-w-0">
+        <p className="text-[10px] font-mono text-muted-foreground uppercase tracking-wider mb-1">{label}</p>
+        <code className={`text-xs font-mono break-all ${hint ? "text-muted-foreground/60 italic" : "text-foreground"}`}>
+          {value}
+        </code>
+      </div>
+      {onCopy && (
+        <button
+          onClick={onCopy}
+          className="shrink-0 p-1.5 rounded text-muted-foreground hover:text-foreground hover:bg-muted/50 transition-colors"
+          title="Copy to clipboard"
+        >
+          {copied ? <Check className="w-3.5 h-3.5 text-teal-400" /> : <Copy className="w-3.5 h-3.5" />}
+        </button>
       )}
     </div>
   );
