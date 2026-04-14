@@ -7,7 +7,7 @@ A self-hosted web app for KOReader users with:
 2. **Dashboard** — Reading stats, recent activity, per-user breakdown
 3. **Library Search** — Search ebooks by title/filename with filters
 4. **Settings** — Configure local library path, trigger rescans, view data locations
-5. **GitHub CI** — Auto-build, versioning, release notes, GitHub Pages preview
+5. **Windows Deployment** — Single PowerShell script installs and auto-updates as a Windows service
 
 ## Stack
 
@@ -18,7 +18,7 @@ A self-hosted web app for KOReader users with:
 - **API framework**: Express 5
 - **Frontend**: React + Vite + Tailwind CSS + Wouter routing
 - **Validation**: Zod (`zod/v4`), Orval codegen from OpenAPI spec
-- **Build**: esbuild (CJS bundle for API), Vite (for frontend)
+- **Build**: esbuild (bundled ESM for API), Vite (for dashboard)
 
 ## Key Commands
 
@@ -30,14 +30,36 @@ A self-hosted web app for KOReader users with:
 
 ## Artifacts
 
-- `artifacts/api-server` — Express API server (port assigned by Replit, at `/api`)
-- `artifacts/koreader-dashboard` — React+Vite dashboard (at `/`)
+- `artifacts/api-server` — Express API server (serves API at `/api` + dashboard static files)
+- `artifacts/koreader-dashboard` — React+Vite dashboard (dev only; bundled into API dist for release)
+
+## Release Process
+
+Releases are **fully automatic** on every push to `main`:
+1. Version is computed as `v{package.json version}.{CI run number}` (e.g. `v1.2.42`)
+2. Dashboard is built with `BASE_PATH=/` so Express can serve it
+3. Dashboard static files are copied into `artifacts/api-server/dist/public/`
+4. API server is built — Express serves both API and dashboard from one process
+5. Bundle is zipped as `koreader-sync-server-{version}.zip`
+6. A Git tag is created automatically
+7. A GitHub Release is created with two assets:
+   - `koreader-sync.ps1` — the Windows deployment script
+   - `koreader-sync-server-{version}.zip` — the server bundle
+
+## Windows Deployment Script (`koreader-sync.ps1`)
+
+Single PowerShell script at the repo root. Users download it once and run it.
+
+- **Fresh install**: downloads NSSM + latest server zip, installs Windows service `KOReaderSync`
+- **Update**: detects installed version, stops service, downloads new bundle, restarts
+- **Uninstall**: `.\koreader-sync.ps1 -Uninstall`
+- All files stored in `$PSScriptRoot`: `app\`, `data\`, `logs\`, `nssm.exe`, `.installed-version`
 
 ## API Endpoints
 
 ### Dashboard
 - `GET /api/healthz` — health check
-- `GET /api/koreader/stats` — aggregate reading stats (auto-refreshed every 3s)
+- `GET /api/koreader/stats` — aggregate reading stats
 - `GET /api/koreader/search?q=...&ext=epub&cover=1&recent=1` — library search
 - `GET /api/koreader/cover/:md5` — book cover image (SVG placeholder if missing)
 
@@ -54,41 +76,36 @@ A self-hosted web app for KOReader users with:
 
 ## Data Storage
 
-Progress data is stored as JSON files under `koreader-data/` (next to the running API server binary):
+Progress data is stored as JSON files under `koreader-data/` (configurable via `KOREADER_DATA_DIR`):
 ```
 koreader-data/
-├── settings.json          ← App settings (library path, last scan date)
-├── book-md5-cache.json    ← Book MD5 → file path index
+├── settings.json
+├── book-md5-cache.json
 ├── users/
-│   ├── {username}/
-│   │   ├── auth.json              ← User auth record
-│   │   └── [MD5].json             ← Reading progress per book
-│   └── ...
+│   └── {username}/
+│       ├── auth.json
+│       └── [MD5].json
 └── covers/
-    └── [MD5].txt          ← Book cover images (base64 data URLs)
+    └── [MD5].txt
 ```
 
-Set `KOREADER_DATA_DIR` env var to override the data directory path.
-Set `KOREADER_CACHE` env var to override the cache file path.
+## Production Bundle Layout
 
-## GitHub Setup
-
-- `.github/workflows/build.yml` — CI: build + typecheck on every push, deploy GitHub Pages preview on main
-- `.github/workflows/release.yml` — Release: auto GitHub Release with changelog on version tags
-- `README.md` — full setup guide, KOReader config, backup/restore instructions
-- `CHANGELOG.md` — Keep a Changelog format
-
-To release a new version:
-```bash
-git tag -a v1.1.0 -m "Release v1.1.0"
-git push origin v1.1.0
+When installed via `koreader-sync.ps1` on Windows:
+```
+<install dir>\
+├── koreader-sync.ps1
+├── nssm.exe
+├── .installed-version
+├── app\
+│   ├── index.mjs        ← API server + dashboard (one process)
+│   ├── pino-*.mjs
+│   └── public\          ← dashboard static files served by Express
+├── data\                ← progress sync data (back up this folder)
+└── logs\
 ```
 
-## KOReader Configuration
+## GitHub CI
 
-In KOReader: Tools → Progress sync → Custom sync server
-- Server: `https://your-domain.replit.app/api/koreader`
-- Username: any username
-- Password: anything (not validated)
-
-See the `pnpm-workspace` skill for workspace structure, TypeScript setup, and package details.
+- `.github/workflows/build.yml` — auto-release on push to main, GitHub Pages deploy
+- `.github/workflows/release.yml` — deprecated no-op (kept to avoid broken links)
