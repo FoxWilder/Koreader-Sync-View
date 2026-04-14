@@ -879,6 +879,88 @@ export const useTriggerScan = <
 };
 
 /**
+ * Wipe the existing MD5 cache and run a full scan from scratch
+ * @summary Rebuild MD5 cache
+ */
+export const getRebuildCacheUrl = () => {
+  return `/api/koreader/settings/rebuild`;
+};
+
+export const rebuildCache = async (
+  options?: RequestInit,
+): Promise<ScanStatus> => {
+  return customFetch<ScanStatus>(getRebuildCacheUrl(), {
+    ...options,
+    method: "POST",
+  });
+};
+
+export const getRebuildCacheMutationOptions = <
+  TError = ErrorType<unknown>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof rebuildCache>>,
+    TError,
+    void,
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof rebuildCache>>,
+  TError,
+  void,
+  TContext
+> => {
+  const mutationKey = ["rebuildCache"];
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation &&
+      "mutationKey" in options.mutation &&
+      options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof rebuildCache>>,
+    void
+  > = () => {
+    return rebuildCache(requestOptions);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type RebuildCacheMutationResult = NonNullable<
+  Awaited<ReturnType<typeof rebuildCache>>
+>;
+
+export type RebuildCacheMutationError = ErrorType<unknown>;
+
+/**
+ * @summary Rebuild MD5 cache
+ */
+export const useRebuildCache = <
+  TError = ErrorType<unknown>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof rebuildCache>>,
+    TError,
+    void,
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationResult<
+  Awaited<ReturnType<typeof rebuildCache>>,
+  TError,
+  void,
+  TContext
+> => {
+  return useMutation(getRebuildCacheMutationOptions(options));
+};
+
+/**
  * Returns current scan status and progress
  * @summary Get scan status
  */
