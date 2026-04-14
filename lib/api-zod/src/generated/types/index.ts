@@ -14,6 +14,7 @@ export * from "./searchLibraryParams";
 export * from "./settings";
 export * from "./settingsUpdate";
 export * from "./statsResponse";
+export * from "./statsResponseActivityByDay";
 export * from "./syncProgress";
 export * from "./syncProgressUpdate";
 export * from "./userStat";
