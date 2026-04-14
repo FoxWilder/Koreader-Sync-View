@@ -47,3 +47,7 @@ Thumbs.db
 # Replit
 .cache/
 .local/
+
+# KOReader Sync data (reading progress, library index — do not commit)
+koreader-data/
+*.tmp

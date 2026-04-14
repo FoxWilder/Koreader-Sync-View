@@ -183,3 +183,107 @@ export const GetAuthResponse = zod.object({
   authorized: zod.boolean(),
   user: zod.string(),
 });
+
+/**
+ * Returns current settings including library path and data directory info
+ * @summary Get application settings
+ */
+export const GetSettingsResponse = zod.object({
+  library_path: zod
+    .string()
+    .describe(
+      "Absolute path to the root ebook library directory (scanned recursively)",
+    ),
+  data_dir: zod
+    .string()
+    .describe(
+      "Absolute path to the data directory where progress sync files are stored",
+    ),
+  users_dir: zod
+    .string()
+    .describe(
+      "Absolute path to the users directory (auth.json and [MD5].json files per user)",
+    ),
+  covers_dir: zod.string().describe("Absolute path to the covers directory"),
+  cache_file: zod
+    .string()
+    .describe("Absolute path to the book-md5-cache.json file"),
+  book_count: zod
+    .number()
+    .describe("Number of books currently indexed in the library"),
+  last_scan_iso: zod
+    .string()
+    .describe("ISO timestamp of the last library scan"),
+  supported_extensions: zod
+    .array(zod.string())
+    .describe("File extensions that are scanned for library indexing"),
+});
+
+/**
+ * Update settings. Triggers a library rescan if library_path changes.
+ * @summary Update application settings
+ */
+export const UpdateSettingsBody = zod.object({
+  library_path: zod
+    .string()
+    .describe("Absolute path to the root ebook library directory"),
+});
+
+export const UpdateSettingsResponse = zod.object({
+  library_path: zod
+    .string()
+    .describe(
+      "Absolute path to the root ebook library directory (scanned recursively)",
+    ),
+  data_dir: zod
+    .string()
+    .describe(
+      "Absolute path to the data directory where progress sync files are stored",
+    ),
+  users_dir: zod
+    .string()
+    .describe(
+      "Absolute path to the users directory (auth.json and [MD5].json files per user)",
+    ),
+  covers_dir: zod.string().describe("Absolute path to the covers directory"),
+  cache_file: zod
+    .string()
+    .describe("Absolute path to the book-md5-cache.json file"),
+  book_count: zod
+    .number()
+    .describe("Number of books currently indexed in the library"),
+  last_scan_iso: zod
+    .string()
+    .describe("ISO timestamp of the last library scan"),
+  supported_extensions: zod
+    .array(zod.string())
+    .describe("File extensions that are scanned for library indexing"),
+});
+
+/**
+ * Manually trigger a recursive scan of the configured library path
+ * @summary Trigger library scan
+ */
+export const TriggerScanResponse = zod.object({
+  running: zod.boolean(),
+  files_found: zod.number(),
+  files_processed: zod.number(),
+  current_file: zod.string(),
+  started_at: zod.string(),
+  finished_at: zod.string(),
+  error: zod.string(),
+});
+
+/**
+ * Returns current scan status and progress
+ * @summary Get scan status
+ */
+export const GetScanStatusResponse = zod.object({
+  running: zod.boolean(),
+  files_found: zod.number(),
+  files_processed: zod.number(),
+  current_file: zod.string(),
+  started_at: zod.string(),
+  finished_at: zod.string(),
+  error: zod.string(),
+});

@@ -18,6 +18,8 @@ tags:
     description: Book cover images
   - name: sync
     description: KOReader progress sync
+  - name: settings
+    description: Application settings
 paths:
   /healthz:
     get:
@@ -193,6 +195,66 @@ paths:
                 $ref: "#/components/schemas/AuthResponse"
         "401":
           description: Unauthorized
+
+  /koreader/settings:
+    get:
+      operationId: getSettings
+      tags: [settings]
+      summary: Get application settings
+      description: Returns current settings including library path and data directory info
+      responses:
+        "200":
+          description: Settings
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Settings"
+    put:
+      operationId: updateSettings
+      tags: [settings]
+      summary: Update application settings
+      description: Update settings. Triggers a library rescan if library_path changes.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/SettingsUpdate"
+      responses:
+        "200":
+          description: Updated settings
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Settings"
+
+  /koreader/settings/scan:
+    post:
+      operationId: triggerScan
+      tags: [settings]
+      summary: Trigger library scan
+      description: Manually trigger a recursive scan of the configured library path
+      responses:
+        "200":
+          description: Scan started
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ScanStatus"
+
+  /koreader/settings/scan/status:
+    get:
+      operationId: getScanStatus
+      tags: [settings]
+      summary: Get scan status
+      description: Returns current scan status and progress
+      responses:
+        "200":
+          description: Scan status
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ScanStatus"
 
 components:
   schemas:
@@ -406,3 +468,77 @@ components:
       required:
         - authorized
         - user
+
+    Settings:
+      type: object
+      properties:
+        library_path:
+          type: string
+          description: Absolute path to the root ebook library directory (scanned recursively)
+        data_dir:
+          type: string
+          description: Absolute path to the data directory where progress sync files are stored
+        users_dir:
+          type: string
+          description: Absolute path to the users directory (auth.json and [MD5].json files per user)
+        covers_dir:
+          type: string
+          description: Absolute path to the covers directory
+        cache_file:
+          type: string
+          description: Absolute path to the book-md5-cache.json file
+        book_count:
+          type: number
+          description: Number of books currently indexed in the library
+        last_scan_iso:
+          type: string
+          description: ISO timestamp of the last library scan
+        supported_extensions:
+          type: array
+          items:
+            type: string
+          description: File extensions that are scanned for library indexing
+      required:
+        - library_path
+        - data_dir
+        - users_dir
+        - covers_dir
+        - cache_file
+        - book_count
+        - last_scan_iso
+        - supported_extensions
+
+    SettingsUpdate:
+      type: object
+      properties:
+        library_path:
+          type: string
+          description: Absolute path to the root ebook library directory
+      required:
+        - library_path
+
+    ScanStatus:
+      type: object
+      properties:
+        running:
+          type: boolean
+        files_found:
+          type: number
+        files_processed:
+          type: number
+        current_file:
+          type: string
+        started_at:
+          type: string
+        finished_at:
+          type: string
+        error:
+          type: string
+      required:
+        - running
+        - files_found
+        - files_processed
+        - current_file
+        - started_at
+        - finished_at
+        - error

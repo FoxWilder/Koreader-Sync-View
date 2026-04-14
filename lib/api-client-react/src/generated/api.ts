@@ -20,7 +20,10 @@ import type {
   AuthResponse,
   BookCard,
   HealthStatus,
+  ScanStatus,
   SearchLibraryParams,
+  Settings,
+  SettingsUpdate,
   StatsResponse,
   SyncProgress,
   SyncProgressUpdate,
@@ -624,6 +627,325 @@ export function useGetAuth<
   },
 ): UseQueryResult<TData, TError> & { queryKey: QueryKey } {
   const queryOptions = getGetAuthQueryOptions(username, options);
+
+  const query = useQuery(queryOptions) as UseQueryResult<TData, TError> & {
+    queryKey: QueryKey;
+  };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
+
+/**
+ * Returns current settings including library path and data directory info
+ * @summary Get application settings
+ */
+export const getGetSettingsUrl = () => {
+  return `/api/koreader/settings`;
+};
+
+export const getSettings = async (options?: RequestInit): Promise<Settings> => {
+  return customFetch<Settings>(getGetSettingsUrl(), {
+    ...options,
+    method: "GET",
+  });
+};
+
+export const getGetSettingsQueryKey = () => {
+  return [`/api/koreader/settings`] as const;
+};
+
+export const getGetSettingsQueryOptions = <
+  TData = Awaited<ReturnType<typeof getSettings>>,
+  TError = ErrorType<unknown>,
+>(options?: {
+  query?: UseQueryOptions<
+    Awaited<ReturnType<typeof getSettings>>,
+    TError,
+    TData
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}) => {
+  const { query: queryOptions, request: requestOptions } = options ?? {};
+
+  const queryKey = queryOptions?.queryKey ?? getGetSettingsQueryKey();
+
+  const queryFn: QueryFunction<Awaited<ReturnType<typeof getSettings>>> = ({
+    signal,
+  }) => getSettings({ signal, ...requestOptions });
+
+  return { queryKey, queryFn, ...queryOptions } as UseQueryOptions<
+    Awaited<ReturnType<typeof getSettings>>,
+    TError,
+    TData
+  > & { queryKey: QueryKey };
+};
+
+export type GetSettingsQueryResult = NonNullable<
+  Awaited<ReturnType<typeof getSettings>>
+>;
+export type GetSettingsQueryError = ErrorType<unknown>;
+
+/**
+ * @summary Get application settings
+ */
+
+export function useGetSettings<
+  TData = Awaited<ReturnType<typeof getSettings>>,
+  TError = ErrorType<unknown>,
+>(options?: {
+  query?: UseQueryOptions<
+    Awaited<ReturnType<typeof getSettings>>,
+    TError,
+    TData
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+  const queryOptions = getGetSettingsQueryOptions(options);
+
+  const query = useQuery(queryOptions) as UseQueryResult<TData, TError> & {
+    queryKey: QueryKey;
+  };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
+
+/**
+ * Update settings. Triggers a library rescan if library_path changes.
+ * @summary Update application settings
+ */
+export const getUpdateSettingsUrl = () => {
+  return `/api/koreader/settings`;
+};
+
+export const updateSettings = async (
+  settingsUpdate: SettingsUpdate,
+  options?: RequestInit,
+): Promise<Settings> => {
+  return customFetch<Settings>(getUpdateSettingsUrl(), {
+    ...options,
+    method: "PUT",
+    headers: { "Content-Type": "application/json", ...options?.headers },
+    body: JSON.stringify(settingsUpdate),
+  });
+};
+
+export const getUpdateSettingsMutationOptions = <
+  TError = ErrorType<unknown>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof updateSettings>>,
+    TError,
+    { data: BodyType<SettingsUpdate> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof updateSettings>>,
+  TError,
+  { data: BodyType<SettingsUpdate> },
+  TContext
+> => {
+  const mutationKey = ["updateSettings"];
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation &&
+      "mutationKey" in options.mutation &&
+      options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof updateSettings>>,
+    { data: BodyType<SettingsUpdate> }
+  > = (props) => {
+    const { data } = props ?? {};
+
+    return updateSettings(data, requestOptions);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type UpdateSettingsMutationResult = NonNullable<
+  Awaited<ReturnType<typeof updateSettings>>
+>;
+export type UpdateSettingsMutationBody = BodyType<SettingsUpdate>;
+export type UpdateSettingsMutationError = ErrorType<unknown>;
+
+/**
+ * @summary Update application settings
+ */
+export const useUpdateSettings = <
+  TError = ErrorType<unknown>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof updateSettings>>,
+    TError,
+    { data: BodyType<SettingsUpdate> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationResult<
+  Awaited<ReturnType<typeof updateSettings>>,
+  TError,
+  { data: BodyType<SettingsUpdate> },
+  TContext
+> => {
+  return useMutation(getUpdateSettingsMutationOptions(options));
+};
+
+/**
+ * Manually trigger a recursive scan of the configured library path
+ * @summary Trigger library scan
+ */
+export const getTriggerScanUrl = () => {
+  return `/api/koreader/settings/scan`;
+};
+
+export const triggerScan = async (
+  options?: RequestInit,
+): Promise<ScanStatus> => {
+  return customFetch<ScanStatus>(getTriggerScanUrl(), {
+    ...options,
+    method: "POST",
+  });
+};
+
+export const getTriggerScanMutationOptions = <
+  TError = ErrorType<unknown>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof triggerScan>>,
+    TError,
+    void,
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof triggerScan>>,
+  TError,
+  void,
+  TContext
+> => {
+  const mutationKey = ["triggerScan"];
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation &&
+      "mutationKey" in options.mutation &&
+      options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof triggerScan>>,
+    void
+  > = () => {
+    return triggerScan(requestOptions);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type TriggerScanMutationResult = NonNullable<
+  Awaited<ReturnType<typeof triggerScan>>
+>;
+
+export type TriggerScanMutationError = ErrorType<unknown>;
+
+/**
+ * @summary Trigger library scan
+ */
+export const useTriggerScan = <
+  TError = ErrorType<unknown>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof triggerScan>>,
+    TError,
+    void,
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationResult<
+  Awaited<ReturnType<typeof triggerScan>>,
+  TError,
+  void,
+  TContext
+> => {
+  return useMutation(getTriggerScanMutationOptions(options));
+};
+
+/**
+ * Returns current scan status and progress
+ * @summary Get scan status
+ */
+export const getGetScanStatusUrl = () => {
+  return `/api/koreader/settings/scan/status`;
+};
+
+export const getScanStatus = async (
+  options?: RequestInit,
+): Promise<ScanStatus> => {
+  return customFetch<ScanStatus>(getGetScanStatusUrl(), {
+    ...options,
+    method: "GET",
+  });
+};
+
+export const getGetScanStatusQueryKey = () => {
+  return [`/api/koreader/settings/scan/status`] as const;
+};
+
+export const getGetScanStatusQueryOptions = <
+  TData = Awaited<ReturnType<typeof getScanStatus>>,
+  TError = ErrorType<unknown>,
+>(options?: {
+  query?: UseQueryOptions<
+    Awaited<ReturnType<typeof getScanStatus>>,
+    TError,
+    TData
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}) => {
+  const { query: queryOptions, request: requestOptions } = options ?? {};
+
+  const queryKey = queryOptions?.queryKey ?? getGetScanStatusQueryKey();
+
+  const queryFn: QueryFunction<Awaited<ReturnType<typeof getScanStatus>>> = ({
+    signal,
+  }) => getScanStatus({ signal, ...requestOptions });
+
+  return { queryKey, queryFn, ...queryOptions } as UseQueryOptions<
+    Awaited<ReturnType<typeof getScanStatus>>,
+    TError,
+    TData
+  > & { queryKey: QueryKey };
+};
+
+export type GetScanStatusQueryResult = NonNullable<
+  Awaited<ReturnType<typeof getScanStatus>>
+>;
+export type GetScanStatusQueryError = ErrorType<unknown>;
+
+/**
+ * @summary Get scan status
+ */
+
+export function useGetScanStatus<
+  TData = Awaited<ReturnType<typeof getScanStatus>>,
+  TError = ErrorType<unknown>,
+>(options?: {
+  query?: UseQueryOptions<
+    Awaited<ReturnType<typeof getScanStatus>>,
+    TError,
+    TData
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+  const queryOptions = getGetScanStatusQueryOptions(options);
 
   const query = useQuery(queryOptions) as UseQueryResult<TData, TError> & {
     queryKey: QueryKey;

@@ -82,6 +82,40 @@ export interface AuthResponse {
   user: string;
 }
 
+export interface Settings {
+  /** Absolute path to the root ebook library directory (scanned recursively) */
+  library_path: string;
+  /** Absolute path to the data directory where progress sync files are stored */
+  data_dir: string;
+  /** Absolute path to the users directory (auth.json and [MD5].json files per user) */
+  users_dir: string;
+  /** Absolute path to the covers directory */
+  covers_dir: string;
+  /** Absolute path to the book-md5-cache.json file */
+  cache_file: string;
+  /** Number of books currently indexed in the library */
+  book_count: number;
+  /** ISO timestamp of the last library scan */
+  last_scan_iso: string;
+  /** File extensions that are scanned for library indexing */
+  supported_extensions: string[];
+}
+
+export interface SettingsUpdate {
+  /** Absolute path to the root ebook library directory */
+  library_path: string;
+}
+
+export interface ScanStatus {
+  running: boolean;
+  files_found: number;
+  files_processed: number;
+  current_file: string;
+  started_at: string;
+  finished_at: string;
+  error: string;
+}
+
 export type SearchLibraryParams = {
   /**
    * Search query
