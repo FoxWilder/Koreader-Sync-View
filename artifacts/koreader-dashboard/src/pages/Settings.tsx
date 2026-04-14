@@ -72,7 +72,7 @@ export default function Settings() {
 
   function handleScan() {
     triggerScan.mutate(
-      {},
+      undefined,
       {
         onSuccess: () => {
           refetchScan();

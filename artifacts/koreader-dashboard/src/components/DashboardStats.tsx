@@ -8,7 +8,7 @@ import { Badge } from "./ui/badge";
 
 export function DashboardStats() {
   const { data: stats, isLoading, isError } = useGetStats({
-    query: { refetchInterval: 4000 }
+    query: { refetchInterval: 4000, queryKey: ['stats'] }
   });
 
   if (isLoading && !stats) {
