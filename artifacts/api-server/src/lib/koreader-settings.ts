@@ -122,16 +122,10 @@ export function getScanStatus(): ScanStatus {
 }
 
 // ---------------------------------------------------------------------------
-// MD5 of file content (streaming)
+// MD5 of filename (matches how KOReader identifies documents)
 // ---------------------------------------------------------------------------
-async function fileMd5(filePath: string): Promise<string> {
-  return new Promise((resolve, reject) => {
-    const hash = crypto.createHash("md5");
-    const stream = fs.createReadStream(filePath);
-    stream.on("data", (chunk) => hash.update(chunk));
-    stream.on("end", () => resolve(hash.digest("hex")));
-    stream.on("error", reject);
-  });
+function filenameMd5(filePath: string): string {
+  return crypto.createHash("md5").update(path.basename(filePath)).digest("hex");
 }
 
 // ---------------------------------------------------------------------------
@@ -196,19 +190,14 @@ export function triggerScan(): ScanStatus {
 
   logger.info({ count: files.length, path: libraryPath }, "Library scan started");
 
-  // Process asynchronously
-  (async () => {
+  // Process synchronously — filename hashing needs no I/O
+  try {
     const existingCache = readCache();
     const newCache: Record<string, string> = {};
 
     for (const filePath of files) {
       scanStatus.current_file = path.basename(filePath);
-      try {
-        const md5 = await fileMd5(filePath);
-        newCache[md5] = filePath;
-      } catch (e) {
-        logger.warn({ err: e, file: filePath }, "Failed to hash file");
-      }
+      newCache[filenameMd5(filePath)] = filePath;
       scanStatus.files_processed++;
     }
 
@@ -230,12 +219,12 @@ export function triggerScan(): ScanStatus {
     });
 
     logger.info({ total: Object.keys(merged).length }, "Library scan complete");
-  })().catch((e) => {
+  } catch (e) {
     scanStatus.running = false;
     scanStatus.error = String(e);
     scanStatus.finished_at = new Date().toISOString();
     logger.error({ err: e }, "Library scan failed");
-  });
+  }
 
   return getScanStatus();
 }
