@@ -9,6 +9,14 @@ A self-hosted **progress sync server** and **smart library dashboard** for [KORe
 
 ---
 
+## ❤️ Support This Project
+
+I'm a solo developer building this tool in my free time after many late-night vibe-coding sessions. If **Koreader-Sync-View** makes your reading life better, consider becoming a sponsor. Every contribution helps me dedicate more time to new features, better multi-platform support, Docker images, and community requests.
+
+**[Become a Sponsor ❤️](https://github.com/sponsors/FoxWilder)**
+
+---
+
 ## Features
 
 - **KOReader-compatible sync API** — drop-in replacement for the official sync server
@@ -221,6 +229,15 @@ lib/
 ├── api-zod/                ← generated Zod validators
 └── api-client-react/       ← generated React Query hooks
 ```
+
+---
+
+## Sponsors
+A big thank you to everyone supporting the project!
+
+Special Thanks
+
+All current and future sponsors ❤️
 
 ---
 
