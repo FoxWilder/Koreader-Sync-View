@@ -92,6 +92,26 @@ export const SearchLibraryQueryParams = zod.object({
     .string()
     .optional()
     .describe('Set to \"1\" to only return books with reading progress'),
+  user: zod.coerce
+    .string()
+    .optional()
+    .describe("Filter to books that have progress for this username"),
+  status: zod
+    .enum(["in_progress", "completed", "not_started"])
+    .optional()
+    .describe(
+      "Filter by reading status (in_progress, completed, or not_started)",
+    ),
+  lang: zod.coerce
+    .string()
+    .optional()
+    .describe("Filter by epub language tag (e.g. en, de, fr)"),
+  sort: zod
+    .enum(["recent", "title", "author", "progress"])
+    .optional()
+    .describe(
+      "Sort order (recent = last read first, title = A-Z, author = A-Z by author, progress = % descending)",
+    ),
 });
 
 export const SearchLibraryResponseItem = zod.object({

@@ -149,4 +149,39 @@ export type SearchLibraryParams = {
    * Set to "1" to only return books with reading progress
    */
   recent?: string;
+  /**
+   * Filter to books that have progress for this username
+   */
+  user?: string;
+  /**
+   * Filter by reading status (in_progress, completed, or not_started)
+   */
+  status?: SearchLibraryStatus;
+  /**
+   * Filter by epub language tag (e.g. en, de, fr)
+   */
+  lang?: string;
+  /**
+   * Sort order (recent = last read first, title = A-Z, author = A-Z by author, progress = % descending)
+   */
+  sort?: SearchLibrarySort;
 };
+
+export type SearchLibraryStatus =
+  (typeof SearchLibraryStatus)[keyof typeof SearchLibraryStatus];
+
+export const SearchLibraryStatus = {
+  in_progress: "in_progress",
+  completed: "completed",
+  not_started: "not_started",
+} as const;
+
+export type SearchLibrarySort =
+  (typeof SearchLibrarySort)[keyof typeof SearchLibrarySort];
+
+export const SearchLibrarySort = {
+  recent: "recent",
+  title: "title",
+  author: "author",
+  progress: "progress",
+} as const;

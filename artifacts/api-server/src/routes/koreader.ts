@@ -41,11 +41,15 @@ router.get("/koreader/search", async (req, res): Promise<void> => {
     return;
   }
 
-  const { q, ext, cover, recent } = parsed.data;
+  const { q, ext, cover, recent, user, status, lang, sort } = parsed.data;
   const results = searchLibrary(q, {
     ext: ext || undefined,
     onlyCover: cover === "1",
     onlyRecent: recent === "1",
+    user: user || undefined,
+    status: status || undefined,
+    lang: lang || undefined,
+    sort: sort || undefined,
   });
 
   res.json(results);

@@ -354,25 +354,38 @@ export function installDemoFetch(): void {
     if (url.includes("/api/koreader/settings") && method === "POST") return json(SETTINGS);
 
     // Library search
-    if (url.includes("/api/koreader/library/search")) {
+    if (url.includes("/api/koreader/search")) {
       const urlObj = new URL(url, window.location.href);
-      const q = (urlObj.searchParams.get("q") ?? "").toLowerCase();
-      const ext = urlObj.searchParams.get("ext") ?? "";
-      const onlyCover = urlObj.searchParams.get("cover") === "1";
+      const q          = (urlObj.searchParams.get("q") ?? "").toLowerCase();
+      const ext        = urlObj.searchParams.get("ext") ?? "";
+      const onlyCover  = urlObj.searchParams.get("cover") === "1";
       const onlyRecent = urlObj.searchParams.get("recent") === "1";
+      const user       = urlObj.searchParams.get("user") ?? "";
+      const status     = urlObj.searchParams.get("status") ?? "";
+      const lang       = urlObj.searchParams.get("lang") ?? "";
+      const sort       = urlObj.searchParams.get("sort") ?? "recent";
 
       let results = BOOKS.filter(b => {
         if (ext && b.ext !== ext) return false;
         if (onlyCover && !b.has_cover) return false;
         if (onlyRecent && !b.last_ts) return false;
+        if (user && b.last_user !== user) return false;
+        if (status === "completed"   && b.last_progress < 99.5) return false;
+        if (status === "in_progress" && (b.last_progress <= 0 || b.last_progress >= 99.5)) return false;
+        if (status === "not_started" && b.last_progress > 0) return false;
+        if (lang && b.epub_language.toLowerCase() !== lang.toLowerCase()) return false;
         if (q) {
-          const hay = [b.display_title, b.display_author, b.epub_series, b.name].join(" ").toLowerCase();
+          const hay = [b.display_title, b.display_author, b.epub_series, b.name, (b.epub_subjects ?? []).join(" ")].join(" ").toLowerCase();
           return hay.includes(q);
         }
         return true;
       });
 
-      results = results.sort((a, b) => b.last_ts - a.last_ts);
+      if (sort === "title")    results = results.sort((a, b) => (a.display_title ?? "").localeCompare(b.display_title ?? ""));
+      else if (sort === "author")   results = results.sort((a, b) => (a.display_author ?? "").localeCompare(b.display_author ?? ""));
+      else if (sort === "progress") results = results.sort((a, b) => b.last_progress - a.last_progress);
+      else results = results.sort((a, b) => b.last_ts - a.last_ts);
+
       return json(results);
     }
 
