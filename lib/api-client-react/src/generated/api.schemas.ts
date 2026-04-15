@@ -154,7 +154,7 @@ export type SearchLibraryParams = {
    */
   user?: string;
   /**
-   * Filter by reading status (in_progress or completed)
+   * Filter by reading status (in_progress, completed, or not_started)
    */
   status?: SearchLibraryStatus;
   /**
@@ -162,7 +162,7 @@ export type SearchLibraryParams = {
    */
   lang?: string;
   /**
-   * Sort order (recent = last read first, title = A-Z, progress = % descending)
+   * Sort order (recent = last read first, title = A-Z, author = A-Z by author, progress = % descending)
    */
   sort?: SearchLibrarySort;
 };
@@ -173,6 +173,7 @@ export type SearchLibraryStatus =
 export const SearchLibraryStatus = {
   in_progress: "in_progress",
   completed: "completed",
+  not_started: "not_started",
 } as const;
 
 export type SearchLibrarySort =
@@ -181,5 +182,6 @@ export type SearchLibrarySort =
 export const SearchLibrarySort = {
   recent: "recent",
   title: "title",
+  author: "author",
   progress: "progress",
 } as const;
