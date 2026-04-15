@@ -7,6 +7,8 @@ A self-hosted **progress sync server** and **smart library dashboard** for [KORe
 
 > **Live preview:** [foxwilder.github.io/Koreader-Sync-View](https://foxwilder.github.io/Koreader-Sync-View/)
 
+<img width="1872" height="970" alt="image" src="https://github.com/user-attachments/assets/d5151fe0-8218-4bce-a358-2b22d87307d5" />
+
 ---
 
 ## The Story Behind KOReader Sync
