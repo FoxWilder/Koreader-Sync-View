@@ -9,7 +9,28 @@ A self-hosted **progress sync server** and **smart library dashboard** for [KORe
 
 ---
 
-## ❤️ Support This Project
+## The Story Behind KOReader Sync
+
+Like many families, ours is full of passionate readers. We have Kindles scattered around the house and a trusty XTEINK X4 that travels everywhere with us. The one thing that always frustrated us was losing reading progress whenever someone switched devices or—worse—when a device broke and had to be replaced. We wanted a simple way to keep everyone’s place in every book, no matter which screen they picked up.
+
+So I built a small script that ran on my old Windows server. It turned the server into a private progress-sync hub: each family member got their own account, their reading data was safely backed up, and switching devices became effortless—you could pick up exactly where you left off.
+
+As the months went by and we read more books than ever, I started wondering what all that data could tell us. That curiosity turned into a full web dashboard: beautiful reading stats, progress bars, recent activity, and a visual heatmap of our reading streaks. To make it truly useful, I hosted our entire ebook library on the same server and built a database that matched KOReader’s filename-hash system. Suddenly we could see, for every user, exactly which book they were reading, how far they’d gotten, plus rich details like title, author, series, and cover art.
+
+I realized other KOReader users and book-loving families might want the same thing. That’s why I open-sourced the project and turned it into the easy, one-click tool you see today.
+
+**KOReader Sync** is deliberately simple to run:  
+- A single PowerShell script does *everything*—no manual downloads, no complex setup.  
+- It creates a proper Windows service that starts automatically after reboots.  
+- Upgrading to a newer version is just a matter of running the script again; your users, progress, and settings are preserved.  
+- The built-in web settings page lets you point the server at your own ebook library (it scans recursively), configure KOReader sync details, and change the port (defaults to 7300).  
+- There’s even a one-command uninstall if you ever need it.
+
+Everything stays on your machine. Your books, your progress, your data—completely private and under your control.
+
+---
+
+### ❤️ Support This Project
 
 I'm a solo developer building this tool in my free time after many late-night vibe-coding sessions. If **Koreader-Sync-View** makes your reading life better, consider becoming a sponsor. Every contribution helps me dedicate more time to new features, better multi-platform support, Docker images, and community requests.
 
@@ -62,6 +83,15 @@ The script will:
 - Print the dashboard URL
 
 All files (server, data, logs) are stored in the folder where you ran the script.
+
+If you get an error like this:
+```powershell
+.\koreader-sync.ps1 : File \koreader-sync.ps1 cannot be loaded. The file \koreader-sync.ps1 is not digitally signed. You cannot run this script on the current system.
+```
+The easiest way to get it to run is by executing it like this:
+```powershell
+pwsh -ExecutionPolicy Bypass -File .\koreader-sync.ps1
+```
 
 ### Custom port
 
