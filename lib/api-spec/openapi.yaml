@@ -80,6 +80,32 @@ paths:
           schema:
             type: string
           description: Set to "1" to only return books with reading progress
+        - name: user
+          in: query
+          required: false
+          schema:
+            type: string
+          description: Filter to books that have progress for this username
+        - name: status
+          in: query
+          required: false
+          schema:
+            type: string
+            enum: [in_progress, completed]
+          description: Filter by reading status (in_progress or completed)
+        - name: lang
+          in: query
+          required: false
+          schema:
+            type: string
+          description: Filter by epub language tag (e.g. en, de, fr)
+        - name: sort
+          in: query
+          required: false
+          schema:
+            type: string
+            enum: [recent, title, progress]
+          description: Sort order (recent = last read first, title = A-Z, progress = % descending)
       responses:
         "200":
           description: Search results
