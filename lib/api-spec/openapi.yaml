@@ -91,8 +91,8 @@ paths:
           required: false
           schema:
             type: string
-            enum: [in_progress, completed]
-          description: Filter by reading status (in_progress or completed)
+            enum: [in_progress, completed, not_started]
+          description: Filter by reading status (in_progress, completed, or not_started)
         - name: lang
           in: query
           required: false
@@ -104,8 +104,8 @@ paths:
           required: false
           schema:
             type: string
-            enum: [recent, title, progress]
-          description: Sort order (recent = last read first, title = A-Z, progress = % descending)
+            enum: [recent, title, author, progress]
+          description: Sort order (recent = last read first, title = A-Z, author = A-Z by author, progress = % descending)
       responses:
         "200":
           description: Search results
