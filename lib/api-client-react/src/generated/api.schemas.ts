@@ -149,4 +149,20 @@ export type SearchLibraryParams = {
    * Set to "1" to only return books with reading progress
    */
   recent?: string;
+  /**
+   * Filter by last reader username
+   */
+  user?: string;
+  /**
+   * Filter by reading status: "completed", "in_progress", or "not_started"
+   */
+  status?: string;
+  /**
+   * Filter by epub language code (e.g. en, de, fr)
+   */
+  lang?: string;
+  /**
+   * Sort order: "recent" (default), "title", "author", "progress"
+   */
+  sort?: string;
 };

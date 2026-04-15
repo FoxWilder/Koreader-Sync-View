@@ -5,6 +5,7 @@ import { TooltipProvider } from "@/components/ui/tooltip";
 import NotFound from "@/pages/not-found";
 import Home from "@/pages/Home";
 import Settings from "@/pages/Settings";
+import ActivityPage from "@/pages/Activity";
 import { useEffect } from "react";
 import { Settings2 } from "lucide-react";
 
@@ -37,6 +38,7 @@ function Router() {
       <Switch>
         <Route path="/" component={Home} />
         <Route path="/settings" component={Settings} />
+        <Route path="/activity" component={ActivityPage} />
         <Route component={NotFound} />
       </Switch>
     </>

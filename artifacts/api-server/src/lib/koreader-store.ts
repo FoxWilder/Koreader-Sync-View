@@ -424,29 +424,53 @@ export function getStats(): StatsResponse {
 
 export function searchLibrary(
   q: string,
-  opts: { ext?: string; onlyCover?: boolean; onlyRecent?: boolean; limit?: number } = {}
+  opts: {
+    ext?: string;
+    onlyCover?: boolean;
+    onlyRecent?: boolean;
+    user?: string;
+    status?: string;
+    lang?: string;
+    sort?: string;
+    limit?: number;
+  } = {}
 ): BookCard[] {
   const query = (q || "").toLowerCase().trim();
-  const { ext, onlyCover, onlyRecent, limit = 50 } = opts;
+  const { ext, onlyCover, onlyRecent, user, status, lang, sort = "recent", limit = 50 } = opts;
 
   // With no query and no filters, return nothing (avoid dumping entire library)
-  if (!query && !ext && !onlyCover && !onlyRecent) return [];
+  if (!query && !ext && !onlyCover && !onlyRecent && !user && !status && !lang) return [];
 
   const results: Array<BookCard & { score: number }> = [];
 
   for (const b of LIB) {
     const card = makeBookCard(b.md5, b.name, b.path || null);
+
+    // Format filter
     if (ext && card.ext !== ext) continue;
+    // Cover filter
     if (onlyCover && !card.has_cover) continue;
+    // Has-progress filter
     if (onlyRecent && !card.last_ts) continue;
+    // User filter
+    if (user && card.last_user !== user) continue;
+    // Status filter
+    if (status) {
+      if (status === "completed" && card.last_progress < 99.5) continue;
+      if (status === "in_progress" && (card.last_progress <= 0 || card.last_progress >= 99.5)) continue;
+      if (status === "not_started" && card.last_progress > 0) continue;
+    }
+    // Language filter
+    if (lang && card.epub_language.toLowerCase() !== lang.toLowerCase()) continue;
 
     if (query) {
-      // Search across filename, title, author, and series
+      // Search across filename, title, author, series, subjects
       const haystack = [
         b.name,
         card.display_title,
         card.display_author,
         card.epub_series,
+        card.epub_subjects?.join(" ") ?? "",
       ].join(" ").toLowerCase();
 
       if (!haystack.includes(query)) continue;
@@ -463,12 +487,22 @@ export function searchLibrary(
       const score = (bestPos === Infinity ? 999 : bestPos) + Math.max(b.name.length - query.length, 0) / 1000;
       results.push({ ...card, score });
     } else {
-      // Filter-only mode — include all matching, sort by last read
       results.push({ ...card, score: 0 });
     }
   }
 
-  results.sort((a, b) => a.score - b.score || b.last_ts - a.last_ts);
+  // Sort
+  if (sort === "title") {
+    results.sort((a, b) => a.display_title.localeCompare(b.display_title));
+  } else if (sort === "author") {
+    results.sort((a, b) => a.display_author.localeCompare(b.display_author));
+  } else if (sort === "progress") {
+    results.sort((a, b) => b.last_progress - a.last_progress);
+  } else {
+    // default: recent
+    results.sort((a, b) => a.score - b.score || b.last_ts - a.last_ts);
+  }
+
   return results.slice(0, limit);
 }
 
