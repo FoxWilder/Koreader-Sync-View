@@ -87,27 +87,29 @@ export const SearchLibraryQueryParams = zod.object({
   cover: zod.coerce
     .string()
     .optional()
-    .describe('Set to "1" to only return books with covers'),
+    .describe('Set to \"1\" to only return books with covers'),
   recent: zod.coerce
     .string()
     .optional()
-    .describe('Set to "1" to only return books with reading progress'),
+    .describe('Set to \"1\" to only return books with reading progress'),
   user: zod.coerce
     .string()
     .optional()
-    .describe("Filter by last reader username"),
-  status: zod.coerce
-    .string()
+    .describe("Filter to books that have progress for this username"),
+  status: zod
+    .enum(["in_progress", "completed"])
     .optional()
-    .describe('Filter by reading status: "completed", "in_progress", or "not_started"'),
+    .describe("Filter by reading status (in_progress or completed)"),
   lang: zod.coerce
     .string()
     .optional()
-    .describe("Filter by epub language code (e.g. en, de, fr)"),
-  sort: zod.coerce
-    .string()
+    .describe("Filter by epub language tag (e.g. en, de, fr)"),
+  sort: zod
+    .enum(["recent", "title", "progress"])
     .optional()
-    .describe('Sort order: "recent" (default), "title", "author", "progress"'),
+    .describe(
+      "Sort order (recent = last read first, title = A-Z, progress = % descending)",
+    ),
 });
 
 export const SearchLibraryResponseItem = zod.object({
